@@ -1,3 +1,5 @@
+mod environment;
+mod interpreter;
 mod parser;
 mod scanner;
 mod semantic;
