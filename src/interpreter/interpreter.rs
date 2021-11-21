@@ -1,6 +1,6 @@
-use crate::environment::environment::*;
+use crate::environment::{environment::*, environment_value::*};
 use crate::parser::{expression::*, statement::*};
-use crate::scanner::scanner::Error;
+use crate::scanner::{scanner::Error, tokens::*};
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -33,7 +33,7 @@ impl Interpreter {
 
     fn evaluate_expression_item(&mut self, expr: &Expr) -> Result<EnvironmentValue, Error> {
         match expr {
-            // Expr::Binary(expr_binary) => self.visit_binary_expr(expr_binary),
+            Expr::Binary(expr_binary) => self.visit_binary_expr(expr_binary),
             // Expr::Logical(expr_logical) => self.visit_logical_expr(expr_logical),
             // Expr::Grouping(expr_grouping) => self.visit_grouping_expr(expr_grouping),
             // Expr::Literal(_) => (),
@@ -179,5 +179,15 @@ impl Interpreter {
         }
 
         Ok(())
+    }
+
+    fn visit_binary_expr(&mut self, expr: &BinaryExpression) -> Result<EnvironmentValue, Error> {
+        let left = self.evaluate_expression_item(&expr.left)?;
+        let right = self.evaluate_expression_item(&expr.right)?;
+
+        // match expr.operator.token_type {
+        //     TokensType::Plus => match left {},
+        //     _ => {}
+        // }
     }
 }

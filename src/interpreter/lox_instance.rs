@@ -1,4 +1,4 @@
-use crate::environment::environment::EnvironmentValue;
+use crate::environment::environment_value::EnvironmentValue;
 
 use super::super::environment::*;
 use super::super::scanner::*;

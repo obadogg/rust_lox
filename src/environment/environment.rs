@@ -1,41 +1,7 @@
-use crate::interpreter::lox_class::LoxClass;
-use crate::interpreter::lox_function::LoxFunction;
-use crate::interpreter::lox_instance::LoxInstance;
-use crate::interpreter::lox_return::LoxReturn;
-
 use super::super::scanner::{scanner::*, tokens::*};
+use super::environment_value::*;
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
-
-#[derive(Debug, Clone)]
-pub enum EnvironmentValue {
-    LoxClass(LoxClass),
-    LoxFunction(LoxFunction),
-    LoxInstance(LoxInstance),
-    LoxReturn(LoxReturn),
-    // LoxNativeFunction,
-    // LoxNativeClass,
-    LiteralValue(Option<ValueType>),
-}
-
-impl EnvironmentValue {
-    pub fn is_truthy(&self) -> bool {
-        let mut flag = false;
-        match self {
-            EnvironmentValue::LiteralValue(value) => {
-                if let Some(val) = value {
-                    match val {
-                        ValueType::Number(num_val) => flag = *num_val != 0_f64,
-                        ValueType::String(string_val) => flag = string_val.len() != 0,
-                        ValueType::Bool(bool_val) => flag = *bool_val,
-                    }
-                }
-            }
-            _ => {}
-        }
-        flag
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Environment {
