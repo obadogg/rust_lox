@@ -10,6 +10,12 @@ pub struct Error {
     pub message: String,
 }
 
+impl Error {
+    pub fn format(&self) -> String {
+        self.message.clone() + &*self.line.to_string() + &*self.column.to_string()
+    }
+}
+
 #[derive(Debug)]
 pub struct Scanner<'a> {
     pub source: Chars<'a>,
