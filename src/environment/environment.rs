@@ -5,8 +5,8 @@ use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Environment {
-    values: HashMap<String, Option<EnvironmentValue>>,
-    enclosing: Option<Rc<RefCell<Environment>>>,
+    pub values: HashMap<String, EnvironmentValue>,
+    pub enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
@@ -17,11 +17,11 @@ impl Environment {
         }
     }
 
-    pub fn define(&mut self, name: String, value: Option<EnvironmentValue>) {
+    pub fn define(&mut self, name: String, value: EnvironmentValue) {
         self.values.insert(name, value);
     }
 
-    pub fn get(&self, name: &Token) -> Result<Option<EnvironmentValue>, Error> {
+    pub fn get(&self, name: &Token) -> Result<EnvironmentValue, Error> {
         if self.values.contains_key(&name.lexeme) {
             return Ok(self.values.get(&name.lexeme).unwrap().clone());
         }
@@ -60,7 +60,7 @@ impl Environment {
         environment
     }
 
-    pub fn assign(&mut self, name: &Token, value: Option<EnvironmentValue>) -> Result<(), Error> {
+    pub fn assign(&mut self, name: &Token, value: EnvironmentValue) -> Result<(), Error> {
         if self.values.contains_key(&name.lexeme) {
             self.define(name.lexeme.clone(), value);
             return Ok(());

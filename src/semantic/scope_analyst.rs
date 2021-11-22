@@ -1,13 +1,11 @@
 use crate::hash_map;
-use crate::parser::statement;
 use crate::utils::utils::get_rc_ref_address;
 
 use super::super::parser::{expression::*, statement::*};
 use super::super::scanner::{scanner::*, tokens::*};
 
-use super::super::utils::*;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Copy, Clone)]
 pub enum FunctionType {
@@ -28,7 +26,7 @@ pub enum ClassType {
 pub struct ScopeAnalyst {
     pub statements: Rc<Vec<Stmt>>,
     pub scopes: Vec<HashMap<String, bool>>,
-    pub scope_record: HashMap<usize, usize>,
+    pub scope_record: Rc<RefCell<HashMap<usize, usize>>>,
     pub function_type: FunctionType,
     pub class_type: ClassType,
     pub errors: Vec<Error>,
@@ -39,7 +37,7 @@ impl ScopeAnalyst {
         ScopeAnalyst {
             statements,
             scopes: Vec::new(),
-            scope_record: HashMap::new(),
+            scope_record: Rc::new(RefCell::new(HashMap::new())),
             function_type: FunctionType::None,
             class_type: ClassType::None,
             errors: Vec::new(),
@@ -327,7 +325,7 @@ impl ScopeAnalyst {
     fn calculate(&mut self, address: usize, token: &Token) {
         for (pos, scope) in self.scopes.iter().rev().enumerate() {
             if scope.contains_key(&token.lexeme) {
-                self.scope_record.insert(address, pos);
+                self.scope_record.borrow_mut().insert(address, pos);
             }
         }
     }
