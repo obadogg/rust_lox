@@ -66,7 +66,6 @@ impl ScopeAnalyst {
             Stmt::Block(stmt_block) => self.visit_block_stmt(stmt_block),
             Stmt::Return(stmt_return) => self.visit_return_stmt(stmt_return),
             Stmt::Class(stmt_class) => self.visit_class_stmt(stmt_class),
-            _ => {}
         }
     }
 
@@ -90,7 +89,6 @@ impl ScopeAnalyst {
             Expr::Set(expr_set) => self.visit_set_expr(expr_set),
             Expr::This(expr_this) => self.visit_this_expr(expr_this),
             Expr::Super(expr_super) => self.visit_super_expr(expr_super),
-            _ => {}
         }
     }
 
@@ -203,7 +201,10 @@ impl ScopeAnalyst {
                         self.errors.push(Error {
                             line: stmt.name.line,
                             column: stmt.name.column,
-                            message: String::from("A class can't inherit from itself(\"\""), //TODO:
+                            message: format!(
+                                "A class can't inherit from itself(\"{:?}\"",
+                                stmt.name.lexeme
+                            ),
                         })
                     }
                 }
@@ -211,6 +212,7 @@ impl ScopeAnalyst {
             }
             self.evaluate_expression_item(superclass);
             self.scopes.push(hash_map! {String::from("super") => true});
+            self.class_type = ClassType::SubClass;
         }
 
         self.scopes.push(hash_map! {String::from("this") => true});
@@ -258,7 +260,10 @@ impl ScopeAnalyst {
                     self.errors.push(Error {
                         line: expr.name.line,
                         column: expr.name.column,
-                        message: String::from("Can't read local variable in its own initializer()"), //TODO:
+                        message: format!(
+                            "Can't read local variable in its own initializer(\"{}\")",
+                            expr.name.lexeme
+                        ),
                     });
                 }
             }

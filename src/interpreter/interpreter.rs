@@ -3,6 +3,7 @@ use crate::parser::{expression::*, statement::*};
 use crate::scanner::{scanner::Error, tokens::*};
 use crate::utils::utils::get_rc_ref_address;
 
+use super::lox_class::LoxClass;
 use super::lox_function::LoxFunction;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -12,6 +13,7 @@ pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
     statements: Rc<Vec<Stmt>>,
     scope_record: Rc<RefCell<HashMap<usize, usize>>>,
+    pub return_val: EnvironmentValue,
 }
 
 impl Interpreter {
@@ -25,12 +27,14 @@ impl Interpreter {
             environment: env.clone(),
             statements,
             scope_record,
+            return_val: EnvironmentValue::None,
         }
     }
 
     pub fn interpret(&mut self) {
         for stmt in self.statements.clone().iter() {
-            self.evaluate_statement_item(stmt);
+            self.evaluate_statement_item(stmt)
+                .expect("oops! program panic:");
         }
     }
 
@@ -44,15 +48,10 @@ impl Interpreter {
             Expr::Variable(expr_variable) => self.visit_variable_expr(expr_variable),
             Expr::Assignment(expr_assignment) => self.visit_assignment_expr(expr_assignment),
             Expr::Call(expr_call) => self.visit_call_expr(expr_call),
-            // Expr::Get(expr_get) => self.visit_get_expr(expr_get),
-            // Expr::Set(expr_set) => self.visit_set_expr(expr_set),
-            // Expr::This(expr_this) => self.visit_this_expr(expr_this),
-            // Expr::Super(expr_super) => self.visit_super_expr(expr_super),
-            _ => Err(Error {
-                line: 1,
-                column: 1,
-                message: String::from("asdas"),
-            }),
+            Expr::Get(expr_get) => self.visit_get_expr(expr_get),
+            Expr::Set(expr_set) => self.visit_set_expr(expr_set),
+            Expr::This(expr_this) => self.visit_this_expr(expr_this),
+            Expr::Super(expr_super) => self.visit_super_expr(expr_super),
         }
     }
 
@@ -68,7 +67,6 @@ impl Interpreter {
             Stmt::Block(stmt_block) => self.visit_block_stmt(stmt_block, None),
             Stmt::Return(stmt_return) => self.visit_return_stmt(stmt_return),
             Stmt::Class(stmt_class) => self.visit_class_stmt(stmt_class),
-            _ => Ok(()),
         }
     }
 
@@ -76,7 +74,7 @@ impl Interpreter {
         let lox_function = LoxFunction::new(stmt.clone(), self.environment.clone(), false);
         self.environment.borrow_mut().define(
             stmt.name.lexeme.clone(),
-            EnvironmentValue::LoxFunction(lox_function),
+            EnvironmentValue::LoxFunction(Rc::new(RefCell::new(lox_function))),
         );
         Ok(())
     }
@@ -85,10 +83,10 @@ impl Interpreter {
         let value = self.evaluate_expression_item(&stmt.condition)?;
 
         if value.is_truthy() {
-            self.evaluate_statement_item(&stmt.then_branch);
+            self.evaluate_statement_item(&stmt.then_branch)?;
         } else {
             if let Some(else_branch) = &stmt.else_branch {
-                self.evaluate_statement_item(else_branch);
+                self.evaluate_statement_item(else_branch)?;
             }
         }
 
@@ -102,8 +100,17 @@ impl Interpreter {
 
     fn visit_print_stmt(&mut self, stmt: &PrintStatement) -> Result<(), Error> {
         let val = self.evaluate_expression_item(&stmt.expression)?;
-        //TODO:
-        Ok(())
+
+        if let Ok(message) = val.as_print() {
+            println!("{}", message);
+            Ok(())
+        } else {
+            Err(Error {
+                line: stmt.keyword.line,
+                column: stmt.keyword.column,
+                message: String::from("Lox only support print String/Boolean/Number"),
+            })
+        }
     }
 
     fn visit_while_stmt(&mut self, stmt: &WhileStatement) -> Result<(), Error> {
@@ -173,31 +180,69 @@ impl Interpreter {
     }
 
     fn visit_return_stmt(&mut self, stmt: &ReturnStatement) -> Result<(), Error> {
-        self.evaluate_expression_item(&stmt.value)?;
-        //TODO:
+        self.return_val = self.evaluate_expression_item(&stmt.value)?;
         Ok(())
     }
 
-    fn visit_class_stmt(&mut self, stmt: &ClassStatement) -> Result<(), Error> {
+    fn visit_class_stmt(&mut self, stmt: &Rc<ClassStatement>) -> Result<(), Error> {
         self.environment
             .borrow_mut()
             .define(stmt.name.lexeme.clone(), EnvironmentValue::None);
+
+        let mut previous: Option<Rc<RefCell<Environment>>> = None;
+        let mut super_class = None;
 
         if let Some(superclass) = &stmt.superclass {
             let superclass_value = self.evaluate_expression_item(superclass)?;
 
             match superclass_value {
-                EnvironmentValue::LoxClass(superclass_value_lox_class) => {}
+                EnvironmentValue::LoxClass(superclass_value_lox_class) => {
+                    previous = Some(self.environment.clone());
+                    self.environment = Rc::new(RefCell::new(Environment::new(Some(
+                        self.environment.clone(),
+                    ))));
+                    self.environment.borrow_mut().define(
+                        String::from("super"),
+                        EnvironmentValue::LoxClass(superclass_value_lox_class.clone()),
+                    );
+                    super_class = Some(superclass_value_lox_class.clone());
+                }
                 _ => {
                     return Err(Error {
                         line: stmt.name.line,
                         column: stmt.name.column,
-                        message: String::from("Superclass must be a class at ")
-                            + stmt.name.lexeme.as_str(),
+                        message: format!("Superclass must be a class at {}", &stmt.name.lexeme),
                     })
                 }
             };
         }
+
+        let methods = stmt.methods.clone();
+        let methods = methods
+            .iter()
+            .map(|f_stmt| {
+                let method = Rc::new(RefCell::new(LoxFunction::new(
+                    f_stmt.clone(),
+                    self.environment.clone(),
+                    f_stmt.name.lexeme == String::from("init"),
+                )));
+                (f_stmt.name.lexeme.clone(), method)
+            })
+            .collect::<HashMap<_, _>>();
+
+        let lox_class = EnvironmentValue::LoxClass(Rc::new(RefCell::new(LoxClass::new(
+            stmt.name.lexeme.clone(),
+            super_class,
+            methods,
+        ))));
+
+        if previous.is_some() {
+            self.environment = previous.unwrap();
+        }
+
+        self.environment
+            .borrow_mut()
+            .assign(&stmt.name, lox_class)?;
 
         Ok(())
     }
@@ -205,6 +250,15 @@ impl Interpreter {
     fn visit_binary_expr(&mut self, expr: &BinaryExpression) -> Result<EnvironmentValue, Error> {
         let left = self.evaluate_expression_item(&expr.left)?;
         let right = self.evaluate_expression_item(&expr.right)?;
+
+        let err = Error {
+            line: expr.operator.line,
+            column: expr.operator.column,
+            message: format!(
+                "\"!=\" and \"==\" operands only support number/string/boolean {}",
+                &expr.operator.lexeme
+            ),
+        };
 
         match expr.operator.token_type {
             TokensType::Plus => {
@@ -214,8 +268,10 @@ impl Interpreter {
                     Err(Error {
                         line: expr.operator.line,
                         column: expr.operator.column,
-                        message: String::from("Operands must be two numbers or two strings ")
-                            + &*expr.operator.lexeme,
+                        message: format!(
+                            "Operands must be two numbers or two strings {}",
+                            &expr.operator.lexeme
+                        ),
                     })
                 }
             }
@@ -227,9 +283,21 @@ impl Interpreter {
             | TokensType::Less
             | TokensType::LessEqual => {
                 return Ok(self.number_binary_calculate(&expr.operator, left, right)?)
-            } //TODO:
-            // TokensType::BangEqual =>
-            // TokensType::EqualEqual =>
+            }
+            TokensType::BangEqual => {
+                let result = left.partial_eq(right);
+                if result.is_ok() {
+                    return Ok(result.unwrap());
+                }
+                Err(err)
+            }
+            TokensType::EqualEqual => {
+                let result = left.eq(right);
+                if result.is_ok() {
+                    return Ok(result.unwrap());
+                }
+                Err(err)
+            }
             _ => Err(Error {
                 line: expr.operator.line,
                 column: expr.operator.column,
@@ -251,8 +319,10 @@ impl Interpreter {
             return Err(Error {
                 line: operator.line,
                 column: operator.column,
-                message: String::from("Operands must be two numbers or two strings ")
-                    + &*operator.lexeme,
+                message: format!(
+                    "Operands must be two numbers or two strings {}",
+                    &operator.lexeme
+                ),
             });
         }
 
@@ -327,8 +397,7 @@ impl Interpreter {
                     return Err(Error {
                         line: expr.operator.line,
                         column: expr.operator.column,
-                        message: String::from("Operand must be a number at ")
-                            + expr.operator.lexeme.as_str(),
+                        message: format!("Operand must be a number at {}", &expr.operator.lexeme),
                     });
                 }
                 return Ok((-right).unwrap());
@@ -389,29 +458,117 @@ impl Interpreter {
             .collect::<Vec<_>>();
 
         match callee {
-            // EnvironmentValue::LoxClass(lox_class) => {}
-            EnvironmentValue::LoxFunction(ref mut lox_function) => {
-                if args.len() != lox_function.arity() {
+            EnvironmentValue::LoxClass(ref mut lox_class) => {
+                if args.len() != lox_class.borrow().arity() {
                     return Err(Error {
                         line: expr.end_parenthese.line,
                         column: expr.end_parenthese.column,
-                        message: String::from("Expect ")
-                            + lox_function.arity().to_string().as_str()
-                            + " arguments but got "
-                            + args.len().to_string().as_str()
-                            + " at \")\"",
+                        message: format!(
+                            "Expect {} arguments but got {}, at \")\"",
+                            lox_class.borrow().arity().to_string(),
+                            args.len().to_string()
+                        ),
                     });
                 }
-                return lox_function.call(self, args);
+                return lox_class.borrow_mut().call(self, args);
+            }
+            EnvironmentValue::LoxFunction(ref mut lox_function) => {
+                if args.len() != lox_function.borrow().arity() {
+                    return Err(Error {
+                        line: expr.end_parenthese.line,
+                        column: expr.end_parenthese.column,
+                        message: format!(
+                            "Expect {} arguments but got {}, at \")\"",
+                            lox_function.borrow().arity().to_string(),
+                            args.len().to_string()
+                        ),
+                    });
+                }
+                return lox_function.borrow_mut().call(self, args);
             }
             _ => {
                 return Err(Error {
                     line: expr.end_parenthese.line,
                     column: expr.end_parenthese.column,
-                    message: String::from("Can only call functions and classes at ")
-                        + &*expr.end_parenthese.lexeme,
+                    message: format!(
+                        "Can only call functions and classes at {}",
+                        &expr.end_parenthese.lexeme
+                    ),
                 })
             }
         }
+    }
+
+    fn visit_get_expr(&mut self, expr: &GetExpression) -> Result<EnvironmentValue, Error> {
+        let obj = self.evaluate_expression_item(&expr.object)?;
+
+        match obj {
+            EnvironmentValue::LoxInstance(lox_instance) => {
+                let lox_instance = lox_instance.clone();
+                let lox_instance = lox_instance.borrow_mut(); //TODO:实现的有没有问题？
+                return lox_instance.get(&expr.name);
+            }
+            _ => Err(Error {
+                line: expr.name.line,
+                column: expr.name.column,
+                message: format!("Only instances have properties at {}", &expr.name.lexeme),
+            }),
+        }
+    }
+
+    fn visit_set_expr(&mut self, expr: &SetExpression) -> Result<EnvironmentValue, Error> {
+        let obj = self.evaluate_expression_item(&expr.object)?;
+
+        match obj {
+            EnvironmentValue::LoxInstance(lox_instance) => {
+                let value = self.evaluate_expression_item(&expr.value)?;
+                let mut lox_instance = lox_instance.borrow_mut();
+                lox_instance.set(&expr.name, value.clone());
+                return Ok(value);
+            }
+            _ => Err(Error {
+                line: expr.name.line,
+                column: expr.name.column,
+                message: format!("Only instances have properties at {}", &expr.name.lexeme),
+            }),
+        }
+    }
+
+    fn visit_this_expr(&mut self, expr: &Rc<ThisExpression>) -> Result<EnvironmentValue, Error> {
+        let add = get_rc_ref_address(expr.clone());
+        let distance = self.scope_record.borrow();
+        let distance = distance.get(&add).unwrap();
+        let environment = Environment::get_env_by_distance(self.environment.clone(), *distance);
+        let value = environment.borrow().get(&expr.keyword);
+        value
+    }
+
+    fn visit_super_expr(&mut self, expr: &Rc<SuperExpression>) -> Result<EnvironmentValue, Error> {
+        let add = get_rc_ref_address(expr.clone());
+        let distance = self.scope_record.borrow();
+        let distance = distance.get(&add).unwrap();
+        let environment = Environment::get_env_by_distance(self.environment.clone(), *distance);
+
+        let superclass = environment.borrow().get(&expr.keyword)?;
+
+        match superclass {
+            EnvironmentValue::LoxClass(superclass) => {
+                let obj = Environment::get_env_by_distance(self.environment.clone(), *distance - 1);
+                let obj = obj.borrow();
+                let obj = obj.values.get(&String::from("this")).unwrap();
+
+                let method = superclass.borrow().find_method(&expr.method.lexeme);
+
+                if let Some(method) = method {
+                    return Ok(method.clone().borrow_mut().bind(obj.clone()));
+                }
+            }
+            _ => {}
+        }
+        Err(Error {
+            line: expr.keyword.line,
+            column: expr.keyword.column,
+            message: format!("Undefined property {}", expr.method.lexeme),
+        })
     }
 }

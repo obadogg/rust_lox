@@ -20,15 +20,20 @@ fn main() {
               this.name = name;
               this.birth = birth;
             }
-          
+
             introduceMySelf() {
-              print \"my name is \" + this.name;
+              print \"my name is \" + this.name + \":fuck\";
               print \"thanks for coming\";
+              return this.aaa();
+            }
+
+            aaa(){
+              return 222;
             }
           }
-          
+
           var me = Person(\"aadonkeyz\", 1995);
-          me.introduceMySelf();
+          print me.introduceMySelf();
     ",
     );
     let mut s = scanner::scanner::Scanner::new(&str);
@@ -42,9 +47,11 @@ fn main() {
     let mut s_a = semantic::scope_analyst::ScopeAnalyst::new(statements.clone());
     s_a.analysis();
 
+    let mut inter =
+        interpreter::interpreter::Interpreter::new(statements.clone(), s_a.scope_record.clone());
+    inter.interpret();
     // let statements2 = statements.clone();
 
-    println!("ssss{:#?}", &s_a);
     // let ddd = Rc::into_raw(test) as usize;
     // let mmm = Rc::into_raw(eee) as usize;
     // let arr = Rc::new(RefCell::new(vec![1]));

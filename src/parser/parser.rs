@@ -99,7 +99,7 @@ impl Parser {
             return Ok(Stmt::Function(Rc::new(self.fun_decl(FunType::Function)?)));
         }
         if self.match_token(TokensType::Class) {
-            return Ok(Stmt::Class(self.class_decl()?));
+            return Ok(Stmt::Class(Rc::new(self.class_decl()?)));
         }
         if self.match_token(TokensType::Var) {
             return Ok(Stmt::Var(self.var_decl()?));
@@ -109,11 +109,14 @@ impl Parser {
     }
 
     fn fun_decl(&mut self, fun_type: FunType) -> Result<FunctionStatement, ()> {
-        let name = self.consume(TokensType::Identifier, String::from("Expect name"))?;
+        let name = self.consume(
+            TokensType::Identifier,
+            format!("Expect {:?} name", fun_type),
+        )?;
         let name = name.clone();
         self.consume(
             TokensType::LeftParen,
-            String::from("Expect \"(\" after name"),
+            format!("Expect \"(\" after {:?} name", fun_type),
         )?;
 
         let mut params = Vec::new();
@@ -135,7 +138,7 @@ impl Parser {
         )?;
         self.consume(
             TokensType::LeftBrace,
-            String::from("Expect \"{\" before body"),
+            format!("Expect \"{{\" before {:?} body", fun_type),
         )?;
 
         let body = self.block()?;
@@ -166,7 +169,7 @@ impl Parser {
 
         let mut methods = Vec::new();
         while !self.check(TokensType::RightBrace) && !self.is_end() {
-            methods.push(self.fun_decl(FunType::Method)?);
+            methods.push(Rc::new(self.fun_decl(FunType::Method)?));
         }
 
         self.consume(
@@ -203,7 +206,7 @@ impl Parser {
             if let Ok(statement) = self.declaration() {
                 statements.push(statement);
             } else {
-                //TODO:
+                //TODO: forgot what todo...
             }
         }
 
@@ -269,20 +272,27 @@ impl Parser {
     }
 
     fn print_stmt(&mut self) -> Result<Stmt, ()> {
+        let keyword = clone_previous_token!(self);
         let expression = self.expression()?;
         self.consume(
             TokensType::Semicolon,
             String::from("Expect \";\" after value"),
         )?;
-        Ok(Stmt::Print(PrintStatement { expression }))
+        Ok(Stmt::Print(PrintStatement {
+            keyword,
+            expression,
+        }))
     }
 
     fn return_stmt(&mut self) -> Result<Stmt, ()> {
         let keyword = clone_previous_token!(self);
-        let mut value = self.expression()?;
+        let value;
         if self.check(TokensType::Semicolon) {
             value = Expr::Literal(LiteralExpression { value: None });
+        } else {
+            value = self.expression()?;
         }
+
         self.consume(
             TokensType::Semicolon,
             String::from("Expect \";\" after return value"),
@@ -464,7 +474,7 @@ impl Parser {
         self.errors.push(Error {
             line: self.peek().line,
             column: self.peek().column,
-            message: String::from("Unexpected token \"\""), //TODO:
+            message: format!("Unexpected token \"{:?}\"", self.peek().lexeme),
         });
 
         Err(())

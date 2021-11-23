@@ -41,10 +41,9 @@ impl LoxFunction {
             environment.borrow_mut().define(decs.lexeme.clone(), arg)
         }
 
-        let return_val = EnvironmentValue::None;
-
         interpreter.visit_block_stmt(&self.declaration.body, Some(environment.clone()))?;
-        //TODO:
+
+        let return_val = interpreter.return_val.clone();
 
         if self.is_initializer {
             let borrow = self.closure.borrow();
@@ -53,5 +52,16 @@ impl LoxFunction {
             return Ok(value.clone());
         }
         Ok(return_val)
+    }
+
+    pub fn bind(&mut self, instance: EnvironmentValue) -> EnvironmentValue {
+        let environment = Rc::new(RefCell::new(Environment::new(Some(self.closure.clone()))));
+        environment
+            .borrow_mut()
+            .define(String::from("this"), instance);
+
+        let lox_function =
+            LoxFunction::new(self.declaration.clone(), environment, self.is_initializer);
+        return EnvironmentValue::LoxFunction(Rc::new(RefCell::new(lox_function)));
     }
 }

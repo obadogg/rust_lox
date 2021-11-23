@@ -1,17 +1,15 @@
-use super::super::scanner::{scanner::*, tokens::*};
+// use super::super::scanner::{scanner::*, tokens::*};
 use crate::interpreter::lox_class::LoxClass;
 use crate::interpreter::lox_function::LoxFunction;
 use crate::interpreter::lox_instance::LoxInstance;
-use crate::interpreter::lox_return::LoxReturn;
 
-use std::{cmp, ops};
+use std::{cell::RefCell, ops, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub enum EnvironmentValue {
-    LoxClass(LoxClass),
-    LoxFunction(LoxFunction),
-    LoxInstance(LoxInstance),
-    LoxReturn(LoxReturn),
+    LoxClass(Rc<RefCell<LoxClass>>),
+    LoxFunction(Rc<RefCell<LoxFunction>>),
+    LoxInstance(Rc<RefCell<LoxInstance>>),
     // LoxNativeFunction,
     // LoxNativeClass,
     Number(f64),
@@ -33,6 +31,16 @@ impl EnvironmentValue {
         flag
     }
 
+    pub fn as_print(&self) -> Result<String, ()> {
+        match self {
+            EnvironmentValue::Number(num_val) => Ok(num_val.to_string()),
+            EnvironmentValue::String(string_val) => Ok(string_val.clone()),
+            EnvironmentValue::Bool(bool_val) => Ok(bool_val.to_string()),
+            EnvironmentValue::None => Ok(String::from("Nil")),
+            _ => Err(()),
+        }
+    }
+
     pub fn is_number(&self) -> (bool, Option<f64>) {
         match self {
             EnvironmentValue::Number(number_val) => (true, Some(*number_val)),
@@ -50,7 +58,7 @@ impl EnvironmentValue {
     // The lt, le, gt, and ge methods of this trait can be called using the <, <=, >, and >= operators, respectively.
     pub fn lt(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
         let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = self.is_number();
+        let (right_is_number, right_number) = rhs.is_number();
 
         if left_is_number && right_is_number {
             return Ok(EnvironmentValue::Bool(
@@ -62,7 +70,7 @@ impl EnvironmentValue {
 
     pub fn le(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
         let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = self.is_number();
+        let (right_is_number, right_number) = rhs.is_number();
 
         if left_is_number && right_is_number {
             return Ok(EnvironmentValue::Bool(
@@ -74,7 +82,7 @@ impl EnvironmentValue {
 
     pub fn gt(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
         let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = self.is_number();
+        let (right_is_number, right_number) = rhs.is_number();
 
         if left_is_number && right_is_number {
             return Ok(EnvironmentValue::Bool(
@@ -86,7 +94,7 @@ impl EnvironmentValue {
 
     pub fn ge(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
         let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = self.is_number();
+        let (right_is_number, right_number) = rhs.is_number();
 
         if left_is_number && right_is_number {
             return Ok(EnvironmentValue::Bool(
@@ -98,11 +106,23 @@ impl EnvironmentValue {
 
     pub fn eq(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
         let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = self.is_number();
+        let (right_is_number, right_number) = rhs.is_number();
 
         if left_is_number && right_is_number {
             return Ok(EnvironmentValue::Bool(
                 left_number.unwrap() == right_number.unwrap(),
+            ));
+        }
+        Err(())
+    }
+
+    pub fn partial_eq(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        let (left_is_number, left_number) = self.is_number();
+        let (right_is_number, right_number) = rhs.is_number();
+
+        if left_is_number && right_is_number {
+            return Ok(EnvironmentValue::Bool(
+                left_number.unwrap() != right_number.unwrap(),
             ));
         }
         Err(())
