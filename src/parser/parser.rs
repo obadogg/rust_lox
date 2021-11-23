@@ -89,6 +89,7 @@ impl Parser {
                 }
                 Err(_) => {
                     self.synchronize();
+                    panic!("oops!parser panic: {:#?}", self.errors);
                 }
             }
         }
@@ -203,11 +204,8 @@ impl Parser {
         let mut statements = Vec::new();
 
         while !self.check(TokensType::RightBrace) && !self.is_end() {
-            if let Ok(statement) = self.declaration() {
-                statements.push(statement);
-            } else {
-                //TODO: forgot what todo...
-            }
+            let stmt = self.declaration()?;
+            statements.push(stmt);
         }
 
         self.consume(

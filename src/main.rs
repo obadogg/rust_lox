@@ -50,19 +50,6 @@ fn main() {
     let mut inter =
         interpreter::interpreter::Interpreter::new(statements.clone(), s_a.scope_record.clone());
     inter.interpret();
-    // let statements2 = statements.clone();
-
-    // let ddd = Rc::into_raw(test) as usize;
-    // let mmm = Rc::into_raw(eee) as usize;
-    // let arr = Rc::new(RefCell::new(vec![1]));
-
-    // arr.borrow_mut().push(2);
-
-    // println!(
-    //     "address:{},{}",
-    //     Rc::into_raw(statements) as usize,
-    //     Rc::into_raw(statements2) as usize
-    // );
 
     // println!("token length: {}", s.tokens.len());
 }
