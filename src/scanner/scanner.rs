@@ -117,14 +117,19 @@ impl<'a> Scanner<'a> {
                     }
                     '/' => {
                         if self.match_char('/') {
-                            match self.peek() {
-                                Some(c) => 'comment: loop {
-                                    if c == '\n' {
+                            'comment: loop {
+                                let peek = self.peek();
+                                match peek {
+                                    Some(c) => {
+                                        if c == '\n' {
+                                            break 'comment;
+                                        }
+                                        self.advance();
+                                    }
+                                    _ => {
                                         break 'comment;
                                     }
-                                    self.advance();
-                                },
-                                _ => (),
+                                }
                             }
                         } else {
                             self.add_token(TokensType::Slash, code.to_string(), None);
