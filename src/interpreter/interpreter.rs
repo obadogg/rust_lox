@@ -3,8 +3,8 @@ use crate::parser::{expression::*, statement::*};
 use crate::scanner::{scanner::Error, tokens::*};
 use crate::utils::utils::get_rc_ref_address;
 
-use super::lox_class::LoxClass;
-use super::lox_function::LoxFunction;
+use super::lox_class::*;
+use super::lox_function::{LoxFunction, SUPER_STRING, THIS_STRING};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
@@ -73,7 +73,7 @@ impl Interpreter {
     fn visit_function_stmt(&mut self, stmt: &Rc<FunctionStatement>) -> Result<(), Error> {
         let lox_function = LoxFunction::new(stmt.clone(), self.environment.clone(), false);
         self.environment.borrow_mut().define(
-            stmt.name.lexeme.clone(),
+            stmt.name.lexeme.as_ptr(),
             EnvironmentValue::LoxFunction(Rc::new(RefCell::new(lox_function))),
         );
         Ok(())
@@ -129,17 +129,19 @@ impl Interpreter {
             self.evaluate_statement_item(initializer)?;
         }
 
-        while stmt.condition.is_some()
-            && self
+        if stmt.condition.is_some() {
+            while self
                 .evaluate_expression_item(stmt.condition.as_ref().unwrap())?
                 .is_truthy()
-        {
-            self.evaluate_statement_item(&stmt.body)?;
+            {
+                self.evaluate_statement_item(&stmt.body)?;
 
-            if let Some(updator) = &stmt.updator {
-                self.evaluate_expression_item(updator)?;
+                if let Some(updator) = &stmt.updator {
+                    self.evaluate_expression_item(updator)?;
+                }
             }
         }
+
         Ok(())
     }
 
@@ -150,7 +152,7 @@ impl Interpreter {
         }
         self.environment
             .borrow_mut()
-            .define(stmt.name.lexeme.clone(), value);
+            .define(stmt.name.lexeme.as_ptr(), value);
         Ok(())
     }
 
@@ -187,7 +189,7 @@ impl Interpreter {
     fn visit_class_stmt(&mut self, stmt: &Rc<ClassStatement>) -> Result<(), Error> {
         self.environment
             .borrow_mut()
-            .define(stmt.name.lexeme.clone(), EnvironmentValue::None);
+            .define(stmt.name.lexeme.as_ptr(), EnvironmentValue::None);
 
         let mut previous: Option<Rc<RefCell<Environment>>> = None;
         let mut super_class = None;
@@ -202,7 +204,7 @@ impl Interpreter {
                         self.environment.clone(),
                     ))));
                     self.environment.borrow_mut().define(
-                        String::from("super"),
+                        SUPER_STRING.as_ptr(),
                         EnvironmentValue::LoxClass(superclass_value_lox_class.clone()),
                     );
                     super_class = Some(superclass_value_lox_class.clone());
@@ -224,7 +226,7 @@ impl Interpreter {
                 let method = Rc::new(RefCell::new(LoxFunction::new(
                     f_stmt.clone(),
                     self.environment.clone(),
-                    f_stmt.name.lexeme == String::from("init"),
+                    *f_stmt.name.lexeme == String::from("init"),
                 )));
                 (f_stmt.name.lexeme.clone(), method)
             })
@@ -374,16 +376,16 @@ impl Interpreter {
     }
 
     fn visit_literal_expr(&mut self, expr: &LiteralExpression) -> Result<EnvironmentValue, Error> {
-        let ref value = expr.value;
+        // let ref value = expr.value;
 
-        if value.is_none() {
-            Ok(EnvironmentValue::None)
-        } else {
-            match &value.clone().unwrap() {
+        if let Some(val) = &expr.value {
+            match val {
                 ValueType::Bool(bool_val) => Ok(EnvironmentValue::Bool(*bool_val)),
                 ValueType::Number(number_val) => Ok(EnvironmentValue::Number(*number_val)),
                 ValueType::String(string_val) => Ok(EnvironmentValue::String(string_val.clone())),
             }
+        } else {
+            Ok(EnvironmentValue::None)
         }
     }
 
@@ -418,8 +420,9 @@ impl Interpreter {
         let add = get_rc_ref_address(expr.clone());
 
         if !self.scope_record.borrow().contains_key(&add) {
-            return self.global.borrow().get(&expr.name.clone());
+            return self.global.borrow().get(&expr.name);
         }
+
         let borrow_env = self.scope_record.borrow();
         let distance = borrow_env.get(&add).unwrap();
         let ref environment = self.environment;
@@ -555,7 +558,7 @@ impl Interpreter {
             EnvironmentValue::LoxClass(superclass) => {
                 let obj = Environment::get_env_by_distance(self.environment.clone(), *distance - 1);
                 let obj = obj.borrow();
-                let obj = obj.values.get(&String::from("this")).unwrap();
+                let obj = obj.values.get(&THIS_STRING.as_ptr()).unwrap();
 
                 let method = superclass.borrow().find_method(&expr.method.lexeme);
 

@@ -2,6 +2,7 @@ use super::tokens::{init_tokens, Token, TokensType, ValueType};
 
 use std::collections::{HashMap, VecDeque};
 use std::str::Chars;
+use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Error {
@@ -13,13 +14,14 @@ pub struct Error {
 #[derive(Debug)]
 pub struct Scanner<'a> {
     pub source: Chars<'a>,
-    pub tokens: VecDeque<Token>,
+    pub tokens: VecDeque<Rc<Token>>,
     start: u8,
     current: u8,
     line: u8,
     peeked: VecDeque<char>,
     token_map: HashMap<&'a str, TokensType>,
     errors: Vec<Error>,
+    lexeme_cache: HashMap<Rc<String>, Rc<String>>,
 }
 
 impl<'a> Scanner<'a> {
@@ -39,6 +41,7 @@ impl<'a> Scanner<'a> {
             peeked,
             token_map: init_tokens(),
             errors: Vec::new(),
+            lexeme_cache: HashMap::new(),
         }
     }
 
@@ -160,14 +163,25 @@ impl<'a> Scanner<'a> {
     }
 
     fn add_token(&mut self, token_type: TokensType, lexeme: String, literal: Option<ValueType>) {
+        let lexeme_name;
+
+        if self.lexeme_cache.contains_key(&lexeme) {
+            lexeme_name = self.lexeme_cache.get(&lexeme).unwrap().clone();
+        } else {
+            lexeme_name = Rc::new(lexeme);
+
+            self.lexeme_cache
+                .insert(lexeme_name.clone(), lexeme_name.clone());
+        }
+
         let token = Token {
             token_type,
-            lexeme,
+            lexeme: lexeme_name,
             literal,
             line: self.line,
             column: self.start,
         };
-        self.tokens.push_back(token);
+        self.tokens.push_back(Rc::new(token));
     }
 
     fn match_char(&mut self, expected: char) -> bool {

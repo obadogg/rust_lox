@@ -7,7 +7,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 #[derive(Debug, Clone)]
 pub struct LoxInstance {
     belong_class: Rc<RefCell<LoxClass>>,
-    fields: HashMap<String, EnvironmentValue>,
+    fields: HashMap<Rc<String>, EnvironmentValue>,
 }
 
 impl LoxInstance {

@@ -7,16 +7,16 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct LoxClass {
-    name: String,
+    name: Rc<String>,
     superclass: Option<Rc<RefCell<LoxClass>>>,
-    methods: HashMap<String, Rc<RefCell<LoxFunction>>>,
+    methods: HashMap<Rc<String>, Rc<RefCell<LoxFunction>>>,
 }
 
 impl LoxClass {
     pub fn new(
-        name: String,
+        name: Rc<String>,
         superclass: Option<Rc<RefCell<LoxClass>>>,
-        methods: HashMap<String, Rc<RefCell<LoxFunction>>>,
+        methods: HashMap<Rc<String>, Rc<RefCell<LoxFunction>>>,
     ) -> Self {
         LoxClass {
             name,
