@@ -1,7 +1,7 @@
 use super::super::scanner::{scanner::*, tokens::*};
 use super::{expression::*, statement::*};
 use std::collections::VecDeque;
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 /**
  * program        → declaration* EOF
@@ -65,14 +65,14 @@ enum FunType {
 
 #[derive(Debug)]
 pub struct Parser {
-    pub tokens: VecDeque<Rc<Token>>,
+    pub tokens: VecDeque<Token>,
     pub current: u8,
     pub statements: Vec<Stmt>,
     pub errors: Vec<Error>,
 }
 
 impl Parser {
-    pub fn new(tokens: VecDeque<Rc<Token>>) -> Self {
+    pub fn new(tokens: VecDeque<Token>) -> Self {
         Parser {
             tokens,
             current: 0,

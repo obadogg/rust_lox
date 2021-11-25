@@ -25,7 +25,7 @@ pub enum ClassType {
 #[derive(Debug, Clone)]
 pub struct ScopeAnalyst {
     pub statements: Rc<Vec<Stmt>>,
-    pub scopes: Vec<HashMap<Rc<String>, bool>>,
+    pub scopes: Vec<HashMap<String, bool>>,
     pub scope_record: Rc<RefCell<HashMap<usize, usize>>>,
     pub function_type: FunctionType,
     pub class_type: ClassType,
@@ -211,16 +211,14 @@ impl ScopeAnalyst {
                 _ => {}
             }
             self.evaluate_expression_item(superclass);
-            self.scopes
-                .push(hash_map! {Rc::new(String::from("super")) => true});
+            self.scopes.push(hash_map! {String::from("super") => true});
             self.class_type = ClassType::SubClass;
         }
 
-        self.scopes
-            .push(hash_map! {Rc::new(String::from("this")) => true});
+        self.scopes.push(hash_map! {String::from("this") => true});
 
         for method in stmt.methods.iter() {
-            if *method.name.lexeme == "init" {
+            if method.name.lexeme == "init" {
                 self.evaluate_function(method, FunctionType::Initializer);
             } else {
                 self.evaluate_function(method, FunctionType::Method)

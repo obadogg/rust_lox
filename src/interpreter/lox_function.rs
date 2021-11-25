@@ -11,10 +11,6 @@ pub struct LoxFunction {
     is_initializer: bool,
 }
 
-pub static THIS_STRING: &'static str = "this";
-pub static SUPER_STRING: &'static str = "super";
-pub static INIT_STRING: &'static str = "init";
-
 impl LoxFunction {
     pub fn new(
         declaration: Rc<FunctionStatement>,
@@ -42,8 +38,7 @@ impl LoxFunction {
         let iter = &self.declaration.clone().params;
         for (pos, decs) in iter.iter().enumerate() {
             let arg = args[pos].clone().unwrap();
-            let name_ptr = decs.lexeme.as_ptr();
-            environment.borrow_mut().define(name_ptr, arg)
+            environment.borrow_mut().define(decs.lexeme.clone(), arg)
         }
 
         interpreter.visit_block_stmt(&self.declaration.body, Some(environment.clone()))?;
@@ -52,7 +47,7 @@ impl LoxFunction {
 
         if self.is_initializer {
             let borrow = self.closure.borrow();
-            let value = borrow.values.get(&THIS_STRING.as_ptr()).unwrap();
+            let value = borrow.values.get(&String::from("this")).unwrap();
 
             return Ok(value.clone());
         }
@@ -63,7 +58,7 @@ impl LoxFunction {
         let environment = Rc::new(RefCell::new(Environment::new(Some(self.closure.clone()))));
         environment
             .borrow_mut()
-            .define(THIS_STRING.as_ptr(), instance);
+            .define(String::from("this"), instance);
 
         let lox_function =
             LoxFunction::new(self.declaration.clone(), environment, self.is_initializer);

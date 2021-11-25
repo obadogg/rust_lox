@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 pub enum TokensType {
@@ -62,7 +61,7 @@ pub enum ValueType {
 #[derive(Debug, Clone)]
 pub struct Token {
     pub token_type: TokensType,
-    pub lexeme: Rc<String>,
+    pub lexeme: String,
     pub line: u8,
     pub column: u8,
     pub literal: Option<ValueType>,
