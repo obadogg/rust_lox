@@ -14,6 +14,7 @@ pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
     statements: Rc<Vec<Stmt>>,
     scope_record: Rc<RefCell<HashMap<usize, usize>>>,
+    expr_values_map: HashMap<*const u8, Rc<EnvironmentValue>>,
     pub return_val: EnvironmentValue,
 }
 
@@ -21,13 +22,21 @@ impl Interpreter {
     pub fn new(
         statements: Rc<Vec<Stmt>>,
         scope_record: Rc<RefCell<HashMap<usize, usize>>>,
+        expr_count: Option<usize>,
     ) -> Self {
         let env = Rc::new(RefCell::new(Environment::new(None)));
+        let expr_values_map;
+        if let Some(count) = expr_count {
+            expr_values_map = HashMap::with_capacity(count)
+        } else {
+            expr_values_map = HashMap::new();
+        }
         Interpreter {
             global: env.clone(),
             environment: env.clone(),
             statements,
             scope_record,
+            expr_values_map,
             return_val: EnvironmentValue::None,
         }
     }
@@ -220,8 +229,8 @@ impl Interpreter {
             };
         }
 
-        let methods = stmt.methods.clone();
-        let methods = methods
+        let methods = stmt
+            .methods
             .iter()
             .map(|f_stmt| {
                 let is_init = *f_stmt.name.lexeme == INIT_STRING;
@@ -256,7 +265,10 @@ impl Interpreter {
         Ok(())
     }
 
-    fn visit_binary_expr(&mut self, expr: &BinaryExpression) -> Result<EnvironmentValue, Error> {
+    fn visit_binary_expr(
+        &mut self,
+        expr: &Rc<BinaryExpression>,
+    ) -> Result<EnvironmentValue, Error> {
         let left = self.evaluate_expression_item(&expr.left)?;
         let right = self.evaluate_expression_item(&expr.right)?;
 
@@ -583,4 +595,8 @@ impl Interpreter {
             message: format!("Undefined property {}", expr.method.lexeme),
         })
     }
+
+    // fn visit_expr_wrap(&mut self,result:Result<EnvironmentValue, Error>) -> Result<EnvironmentValue, Error>{
+
+    // }
 }

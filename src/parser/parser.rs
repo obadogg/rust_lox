@@ -69,6 +69,7 @@ pub struct Parser {
     pub current: u8,
     pub statements: Vec<Stmt>,
     pub errors: Vec<Error>,
+    pub expr_count: usize,
 }
 
 impl Parser {
@@ -78,6 +79,7 @@ impl Parser {
             current: 0,
             statements: Vec::new(),
             errors: Vec::new(),
+            expr_count: 0,
         }
     }
 
@@ -383,7 +385,7 @@ impl Parser {
             let equals = clone_previous_token!(self);
             let value = self.assignment()?;
 
-            match expression {
+            match &expression {
                 Expr::Variable(variable) => {
                     let name = variable.name.clone();
                     return Ok(Expr::Assignment(Rc::new(AssignmentExpression {
@@ -396,7 +398,7 @@ impl Parser {
                         object: get_expression.object.clone(),
                         name: get_expression.name.clone(),
                         value,
-                    })))
+                    })));
                 }
                 _ => {}
             }
@@ -414,28 +416,33 @@ impl Parser {
     fn primary(&mut self) -> Result<Expr, ()> {
         if self.match_token(TokensType::Number) || self.match_token(TokensType::String) {
             let literal = clone_previous_token!(self).literal;
+            self.increase_expr_count();
             return Ok(Expr::Literal(LiteralExpression { value: literal }));
         }
 
         if self.match_token(TokensType::True) {
+            self.increase_expr_count();
             return Ok(Expr::Literal(LiteralExpression {
                 value: Some(ValueType::Bool(true)),
             }));
         }
 
         if self.match_token(TokensType::False) {
+            self.increase_expr_count();
             return Ok(Expr::Literal(LiteralExpression {
                 value: Some(ValueType::Bool(false)),
             }));
         }
 
         if self.match_token(TokensType::Nil) {
+            self.increase_expr_count();
             return Ok(Expr::Literal(LiteralExpression { value: None }));
         }
 
         if self.match_token(TokensType::This) {
             let keyword = self.previous();
             let keyword = keyword.clone();
+            self.increase_expr_count();
             return Ok(Expr::This(Rc::new(ThisExpression { keyword })));
         }
 
@@ -450,11 +457,13 @@ impl Parser {
                 String::from("Expect superclass method name"),
             )?;
             let method = clone_previous_token!(self);
+            self.increase_expr_count();
             return Ok(Expr::Super(Rc::new(SuperExpression { keyword, method })));
         }
 
         if self.match_token(TokensType::Identifier) {
             let name = clone_previous_token!(self);
+            self.increase_expr_count();
             return Ok(Expr::Variable(Rc::new(VariableExpression { name })));
         }
 
@@ -466,6 +475,7 @@ impl Parser {
                 TokensType::RightParen,
                 String::from("Expect \")\" after expression"),
             )?;
+            self.increase_expr_count();
             return expression;
         }
 
@@ -484,6 +494,9 @@ impl Parser {
         while self.match_token(TokensType::Or) {
             let operator = clone_previous_token!(self);
             let right = self.logic_and()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Logical(Rc::new(LogicalExpression {
                 left: expression,
                 operator,
@@ -500,6 +513,9 @@ impl Parser {
         while self.match_token(TokensType::And) {
             let operator = clone_previous_token!(self);
             let right = self.equality()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Logical(Rc::new(LogicalExpression {
                 left: expression,
                 operator,
@@ -516,6 +532,9 @@ impl Parser {
         while self.match_token(TokensType::BangEqual) || self.match_token(TokensType::EqualEqual) {
             let operator = clone_previous_token!(self);
             let right = self.comparison()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Binary(Rc::new(BinaryExpression {
                 left: expression,
                 operator,
@@ -536,6 +555,9 @@ impl Parser {
         {
             let operator = clone_previous_token!(self);
             let right = self.term()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Binary(Rc::new(BinaryExpression {
                 left: expression,
                 operator,
@@ -553,6 +575,8 @@ impl Parser {
             let operator = clone_previous_token!(self);
             let right = self.factor()?;
 
+            self.increase_expr_count();
+
             expression = Expr::Binary(Rc::new(BinaryExpression {
                 left: expression,
                 operator,
@@ -569,6 +593,9 @@ impl Parser {
         while self.match_token(TokensType::Slash) || self.match_token(TokensType::Star) {
             let operator = clone_previous_token!(self);
             let right = self.unary()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Binary(Rc::new(BinaryExpression {
                 left: expression,
                 operator,
@@ -583,6 +610,9 @@ impl Parser {
         if self.match_token(TokensType::Bang) || self.match_token(TokensType::Minus) {
             let operator = clone_previous_token!(self);
             let right = self.unary()?;
+
+            self.increase_expr_count();
+
             return Ok(Expr::Unary(Rc::new(UnaryExpression {
                 operator,
                 expression: right,
@@ -605,6 +635,9 @@ impl Parser {
                         String::from("Expect property name after \".\""),
                     )?;
                     let name = name.clone();
+
+                    self.increase_expr_count();
+
                     expression = Expr::Get(Rc::new(GetExpression {
                         object: expression,
                         name,
@@ -634,6 +667,8 @@ impl Parser {
             String::from("Expect \")\" after arguments"),
         )?;
         let end_parenthese = end_parenthese.clone();
+
+        self.increase_expr_count();
 
         Ok(Expr::Call(Rc::new(CallExpression {
             callee,
@@ -693,6 +728,10 @@ impl Parser {
             message,
         });
         Err(())
+    }
+
+    fn increase_expr_count(&mut self) {
+        self.expr_count = self.expr_count + 1;
     }
 
     fn synchronize(&mut self) {

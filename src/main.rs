@@ -19,7 +19,7 @@ fn main() {
     let str = String::from(
         "
         var sum = 11;
-        for(var i = 0 ; i < 10; i = i + 1) {
+        for(var i = 0 ; i < 10000000; i = i + 1) {
             sum = sum + 1;
         }
         print sum;
@@ -32,13 +32,17 @@ fn main() {
     p.parse();
 
     let statements = Rc::new(p.statements);
-    println!("{:#?}", statements.clone());
+    println!("{:#?} , {}", statements.clone(), p.expr_count);
 
     let mut s_a = semantic::scope_analyst::ScopeAnalyst::new(statements.clone());
     s_a.analysis();
 
-    let mut inter =
-        interpreter::interpreter::Interpreter::new(statements.clone(), s_a.scope_record.clone());
+    let mut inter = interpreter::interpreter::Interpreter::new(
+        statements.clone(),
+        s_a.scope_record.clone(),
+        Some(p.expr_count),
+    );
+
     inter.interpret();
 
     let dur = now.elapsed();
