@@ -3,20 +3,21 @@ use crate::interpreter::interpreter::Interpreter;
 use crate::interpreter::lox_function::*;
 use crate::interpreter::lox_instance::*;
 use crate::scanner::scanner::Error;
+use crate::semantic::scope_analyst::*;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct LoxClass {
     name: Rc<String>,
     superclass: Option<Rc<RefCell<LoxClass>>>,
-    methods: HashMap<Rc<String>, Rc<RefCell<LoxFunction>>>,
+    methods: HashMap<*const u8, Rc<RefCell<LoxFunction>>>,
 }
 
 impl LoxClass {
     pub fn new(
         name: Rc<String>,
         superclass: Option<Rc<RefCell<LoxClass>>>,
-        methods: HashMap<Rc<String>, Rc<RefCell<LoxFunction>>>,
+        methods: HashMap<*const u8, Rc<RefCell<LoxFunction>>>,
     ) -> Self {
         LoxClass {
             name,
@@ -26,19 +27,19 @@ impl LoxClass {
     }
 
     pub fn arity(&self) -> usize {
-        if let Some(initializer) = self.methods.get(&String::from("init")) {
+        if let Some(initializer) = self.methods.get(&INIT_STRING.as_ptr()) {
             return initializer.borrow().arity();
         }
         0
     }
 
-    pub fn find_method(&self, name: &String) -> Option<Rc<RefCell<LoxFunction>>> {
+    pub fn find_method(&self, name: &*const u8) -> Option<Rc<RefCell<LoxFunction>>> {
         if let Some(method) = self.methods.get(name) {
             return Some(method.clone());
         }
 
         if let Some(superclass) = self.superclass.clone() {
-            return superclass.clone().borrow().find_method(&name.clone());
+            return superclass.clone().borrow().find_method(name);
         }
 
         return None;
@@ -52,7 +53,7 @@ impl LoxClass {
         let instance = LoxInstance::new(Rc::new(RefCell::new(self.clone())));
         let instance = Rc::new(RefCell::new(instance));
 
-        if let Some(initializer) = self.methods.get(&String::from("init")) {
+        if let Some(initializer) = self.methods.get(&INIT_STRING.as_ptr()) {
             let mut borrow_function = initializer.borrow_mut();
 
             let value = borrow_function.bind(EnvironmentValue::LoxInstance(instance.clone()));

@@ -7,6 +7,10 @@ use super::super::scanner::{scanner::*, tokens::*};
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
 
+pub static THIS_STRING: &'static str = "this";
+pub static SUPER_STRING: &'static str = "super";
+pub static INIT_STRING: &'static str = "init";
+
 #[derive(Debug, Copy, Clone)]
 pub enum FunctionType {
     None,
@@ -25,7 +29,7 @@ pub enum ClassType {
 #[derive(Debug, Clone)]
 pub struct ScopeAnalyst {
     pub statements: Rc<Vec<Stmt>>,
-    pub scopes: Vec<HashMap<Rc<String>, bool>>,
+    pub scopes: Vec<HashMap<*const u8, bool>>,
     pub scope_record: Rc<RefCell<HashMap<usize, usize>>>,
     pub function_type: FunctionType,
     pub class_type: ClassType,
@@ -211,13 +215,11 @@ impl ScopeAnalyst {
                 _ => {}
             }
             self.evaluate_expression_item(superclass);
-            self.scopes
-                .push(hash_map! {Rc::new(String::from("super")) => true});
+            self.scopes.push(hash_map! {SUPER_STRING.as_ptr() => true});
             self.class_type = ClassType::SubClass;
         }
 
-        self.scopes
-            .push(hash_map! {Rc::new(String::from("this")) => true});
+        self.scopes.push(hash_map! {THIS_STRING.as_ptr() => true});
 
         for method in stmt.methods.iter() {
             if *method.name.lexeme == "init" {
@@ -257,7 +259,7 @@ impl ScopeAnalyst {
     fn visit_variable_expr(&mut self, expr: &Rc<VariableExpression>) {
         if self.scopes.len() != 0 {
             let last = self.scopes.last().unwrap();
-            if let Some(flag) = last.get(&expr.name.lexeme) {
+            if let Some(flag) = last.get(&ScopeAnalyst::get_scope_key_name(&expr.name.lexeme)) {
                 if !flag {
                     self.errors.push(Error {
                         line: expr.name.line,
@@ -331,7 +333,7 @@ impl ScopeAnalyst {
 
     fn calculate(&mut self, address: usize, token: &Token) {
         for (pos, scope) in self.scopes.iter().rev().enumerate() {
-            if scope.contains_key(&token.lexeme) {
+            if scope.contains_key(&ScopeAnalyst::get_scope_key_name(&token.lexeme)) {
                 self.scope_record.borrow_mut().insert(address, pos);
             }
         }
@@ -340,14 +342,14 @@ impl ScopeAnalyst {
     fn declare(&mut self, name: &Token) {
         if self.scopes.len() != 0 {
             let last = self.scopes.last_mut().unwrap();
-            last.insert(name.lexeme.clone(), false);
+            last.insert(ScopeAnalyst::get_scope_key_name(&name.lexeme), false);
         }
     }
 
     fn define(&mut self, name: &Token) {
         if self.scopes.len() != 0 {
             let last = self.scopes.last_mut().unwrap();
-            last.insert(name.lexeme.clone(), true);
+            last.insert(ScopeAnalyst::get_scope_key_name(&name.lexeme), true);
         }
     }
 
@@ -366,5 +368,20 @@ impl ScopeAnalyst {
         self.scopes.pop();
 
         self.function_type = previous_function_type;
+    }
+
+    pub fn get_scope_key_name(lexeme: &Rc<String>) -> *const u8 {
+        if **lexeme == INIT_STRING {
+            return INIT_STRING.as_ptr();
+        }
+
+        if **lexeme == THIS_STRING {
+            return THIS_STRING.as_ptr();
+        }
+
+        if **lexeme == SUPER_STRING {
+            return SUPER_STRING.as_ptr();
+        }
+        return lexeme.as_ptr();
     }
 }

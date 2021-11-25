@@ -1,7 +1,8 @@
-use crate::environment::{environment::Environment, environment_value::EnvironmentValue};
+use crate::environment::{environment::*, environment_value::EnvironmentValue};
 use crate::interpreter::interpreter::Interpreter;
 use crate::parser::statement::FunctionStatement;
 use crate::scanner::scanner::Error;
+use crate::semantic::scope_analyst::*;
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Clone)]
@@ -10,10 +11,6 @@ pub struct LoxFunction {
     closure: Rc<RefCell<Environment>>,
     is_initializer: bool,
 }
-
-pub static THIS_STRING: &'static str = "this";
-pub static SUPER_STRING: &'static str = "super";
-pub static INIT_STRING: &'static str = "init";
 
 impl LoxFunction {
     pub fn new(
@@ -42,7 +39,7 @@ impl LoxFunction {
         let iter = &self.declaration.clone().params;
         for (pos, decs) in iter.iter().enumerate() {
             let arg = args[pos].clone().unwrap();
-            let name_ptr = decs.lexeme.as_ptr();
+            let name_ptr = ScopeAnalyst::get_scope_key_name(&decs.lexeme);
             environment.borrow_mut().define(name_ptr, arg)
         }
 

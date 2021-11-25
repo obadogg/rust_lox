@@ -1,10 +1,11 @@
 use crate::environment::{environment::*, environment_value::*};
 use crate::parser::{expression::*, statement::*};
 use crate::scanner::{scanner::Error, tokens::*};
+use crate::semantic::scope_analyst::*;
 use crate::utils::utils::get_rc_ref_address;
 
 use super::lox_class::*;
-use super::lox_function::{LoxFunction, SUPER_STRING, THIS_STRING};
+use super::lox_function::LoxFunction;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug, Clone)]
@@ -73,7 +74,7 @@ impl Interpreter {
     fn visit_function_stmt(&mut self, stmt: &Rc<FunctionStatement>) -> Result<(), Error> {
         let lox_function = LoxFunction::new(stmt.clone(), self.environment.clone(), false);
         self.environment.borrow_mut().define(
-            stmt.name.lexeme.as_ptr(),
+            ScopeAnalyst::get_scope_key_name(&stmt.name.lexeme),
             EnvironmentValue::LoxFunction(Rc::new(RefCell::new(lox_function))),
         );
         Ok(())
@@ -223,12 +224,18 @@ impl Interpreter {
         let methods = methods
             .iter()
             .map(|f_stmt| {
+                let is_init = *f_stmt.name.lexeme == INIT_STRING;
                 let method = Rc::new(RefCell::new(LoxFunction::new(
                     f_stmt.clone(),
                     self.environment.clone(),
-                    *f_stmt.name.lexeme == String::from("init"),
+                    is_init,
                 )));
-                (f_stmt.name.lexeme.clone(), method)
+
+                if is_init {
+                    (INIT_STRING.as_ptr(), method)
+                } else {
+                    (f_stmt.name.lexeme.as_ptr(), method)
+                }
             })
             .collect::<HashMap<_, _>>();
 
@@ -560,7 +567,9 @@ impl Interpreter {
                 let obj = obj.borrow();
                 let obj = obj.values.get(&THIS_STRING.as_ptr()).unwrap();
 
-                let method = superclass.borrow().find_method(&expr.method.lexeme);
+                let method = superclass
+                    .borrow()
+                    .find_method(&expr.method.lexeme.as_ptr());
 
                 if let Some(method) = method {
                     return Ok(method.clone().borrow_mut().bind(obj.clone()));

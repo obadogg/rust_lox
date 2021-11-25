@@ -1,5 +1,6 @@
 use super::super::scanner::{scanner::*, tokens::*};
 use super::environment_value::*;
+use crate::semantic::scope_analyst::*;
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
 
@@ -22,7 +23,7 @@ impl Environment {
     }
 
     pub fn get(&self, name: &Token) -> Result<EnvironmentValue, Error> {
-        let name_ptr = name.lexeme.as_ptr();
+        let name_ptr = ScopeAnalyst::get_scope_key_name(&name.lexeme);
         if self.values.contains_key(&name_ptr) {
             return Ok(self.values.get(&name_ptr).unwrap().clone());
         }
