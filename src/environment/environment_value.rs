@@ -41,10 +41,10 @@ impl EnvironmentValue {
         }
     }
 
-    pub fn is_number(&self) -> (bool, Option<f64>) {
+    pub fn is_number(&self) -> bool {
         match self {
-            EnvironmentValue::Number(number_val) => (true, Some(*number_val)),
-            _ => (false, None),
+            EnvironmentValue::Number(number_val) => true,
+            _ => false,
         }
     }
 
@@ -56,160 +56,192 @@ impl EnvironmentValue {
     }
 
     // The lt, le, gt, and ge methods of this trait can be called using the <, <=, >, and >= operators, respectively.
-    pub fn lt(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
-
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Bool(
-                left_number.unwrap() < right_number.unwrap(),
-            ));
+    pub fn lt(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Bool(left < right))
+            }
+            (_, _) => Err(()),
         }
-        Err(())
     }
 
-    pub fn le(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
-
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Bool(
-                left_number.unwrap() <= right_number.unwrap(),
-            ));
+    pub fn le(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Bool(left <= right))
+            }
+            (_, _) => Err(()),
         }
-        Err(())
     }
 
-    pub fn gt(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
-
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Bool(
-                left_number.unwrap() > right_number.unwrap(),
-            ));
+    pub fn gt(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Bool(left > right))
+            }
+            (_, _) => Err(()),
         }
-        Err(())
     }
 
-    pub fn ge(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
-
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Bool(
-                left_number.unwrap() >= right_number.unwrap(),
-            ));
+    pub fn ge(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Bool(left >= right))
+            }
+            (_, _) => Err(()),
         }
-        Err(())
     }
 
-    pub fn eq(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
-
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Bool(
-                left_number.unwrap() == right_number.unwrap(),
-            ));
+    pub fn eq(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Bool(left == right))
+            }
+            (_, _) => Err(()),
         }
-        Err(())
     }
 
-    pub fn partial_eq(&self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
-
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Bool(
-                left_number.unwrap() != right_number.unwrap(),
-            ));
+    pub fn partial_eq(
+        lhs: &EnvironmentValue,
+        rhs: &EnvironmentValue,
+    ) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Bool(left != right))
+            }
+            (_, _) => Err(()),
         }
-        Err(())
     }
-}
 
-impl ops::Add<Self> for EnvironmentValue {
-    type Output = Result<EnvironmentValue, ()>;
-
-    fn add(self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (left_is_string, left_string) = self.is_string();
-        let (right_is_number, right_number) = rhs.is_number();
-        let (right_is_string, right_string) = rhs.is_string();
-
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Number(
-                left_number.unwrap() + right_number.unwrap(),
-            ));
+    pub fn add(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Number(left + right))
+            }
+            (EnvironmentValue::String(left), EnvironmentValue::String(right)) => {
+                return Ok(EnvironmentValue::String(left.to_owned() + &*right))
+            }
+            (_, _) => Err(()),
         }
-
-        if left_is_string && right_is_string {
-            return Ok(EnvironmentValue::String(
-                left_string.unwrap() + &*right_string.unwrap(),
-            ));
-        }
-        Err(())
     }
-}
 
-impl ops::Sub<Self> for EnvironmentValue {
-    type Output = Result<EnvironmentValue, ()>;
-
-    fn sub(self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
-
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Number(
-                left_number.unwrap() - right_number.unwrap(),
-            ));
+    pub fn sub(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Number(left - right))
+            }
+            (_, _) => Err(()),
         }
-        Err(())
+    }
+
+    pub fn div(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Number(left / right))
+            }
+            (_, _) => Err(()),
+        }
+    }
+
+    pub fn mul(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match (lhs, rhs) {
+            (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Number(left * right))
+            }
+            (_, _) => Err(()),
+        }
+    }
+
+    pub fn neg(lhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
+        match lhs {
+            EnvironmentValue::Number(left) => return Ok(EnvironmentValue::Number(-left)),
+            _ => Err(()),
+        }
     }
 }
 
-impl ops::Div<Self> for EnvironmentValue {
-    type Output = Result<EnvironmentValue, ()>;
+// 不使用运算符重载
+// impl ops::Add<Self> for EnvironmentValue {
+//     type Output = Result<EnvironmentValue, ()>;
 
-    fn div(self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
+//     fn add(self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
+//         let (left_is_number, left_number) = self.is_number();
+//         let (left_is_string, left_string) = self.is_string();
+//         let (right_is_number, right_number) = rhs.is_number();
+//         let (right_is_string, right_string) = rhs.is_string();
 
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Number(
-                left_number.unwrap() / right_number.unwrap(),
-            ));
-        }
-        Err(())
-    }
-}
+//         if left_is_number && right_is_number {
+//             return Ok(EnvironmentValue::Number(
+//                 left_number.unwrap() + right_number.unwrap(),
+//             ));
+//         }
 
-impl ops::Mul<Self> for EnvironmentValue {
-    type Output = Result<EnvironmentValue, ()>;
+//         if left_is_string && right_is_string {
+//             return Ok(EnvironmentValue::String(
+//                 left_string.unwrap() + &*right_string.unwrap(),
+//             ));
+//         }
+//         Err(())
+//     }
+// }
 
-    fn mul(self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
-        let (right_is_number, right_number) = rhs.is_number();
+// impl ops::Sub<Self> for EnvironmentValue {
+//     type Output = Result<EnvironmentValue, ()>;
 
-        if left_is_number && right_is_number {
-            return Ok(EnvironmentValue::Number(
-                left_number.unwrap() * right_number.unwrap(),
-            ));
-        }
-        Err(())
-    }
-}
+//     fn sub(self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
+//         let (left_is_number, left_number) = self.is_number();
+//         let (right_is_number, right_number) = rhs.is_number();
 
-impl ops::Neg for EnvironmentValue {
-    type Output = Result<EnvironmentValue, ()>;
+//         if left_is_number && right_is_number {
+//             return Ok(EnvironmentValue::Number(
+//                 left_number.unwrap() - right_number.unwrap(),
+//             ));
+//         }
+//         Err(())
+//     }
+// }
 
-    fn neg(self) -> Result<EnvironmentValue, ()> {
-        let (left_is_number, left_number) = self.is_number();
+// impl ops::Div<Self> for EnvironmentValue {
+//     type Output = Result<EnvironmentValue, ()>;
 
-        if left_is_number {
-            return Ok(EnvironmentValue::Number(-left_number.unwrap()));
-        }
-        Err(())
-    }
-}
+//     fn div(self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
+//         let (left_is_number, left_number) = self.is_number();
+//         let (right_is_number, right_number) = rhs.is_number();
+
+//         if left_is_number && right_is_number {
+//             return Ok(EnvironmentValue::Number(
+//                 left_number.unwrap() / right_number.unwrap(),
+//             ));
+//         }
+//         Err(())
+//     }
+// }
+
+// impl ops::Mul<Self> for EnvironmentValue {
+//     type Output = Result<EnvironmentValue, ()>;
+
+//     fn mul(self, rhs: EnvironmentValue) -> Result<EnvironmentValue, ()> {
+//         let (left_is_number, left_number) = self.is_number();
+//         let (right_is_number, right_number) = rhs.is_number();
+
+//         if left_is_number && right_is_number {
+//             return Ok(EnvironmentValue::Number(
+//                 left_number.unwrap() * right_number.unwrap(),
+//             ));
+//         }
+//         Err(())
+//     }
+// }
+
+// impl ops::Neg for EnvironmentValue {
+//     type Output = Result<EnvironmentValue, ()>;
+
+//     fn neg(self) -> Result<EnvironmentValue, ()> {
+//         let (left_is_number, left_number) = self.is_number();
+
+//         if left_is_number {
+//             return Ok(EnvironmentValue::Number(-left_number.unwrap()));
+//         }
+//         Err(())
+//     }
+// }

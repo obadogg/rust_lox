@@ -283,7 +283,7 @@ impl Interpreter {
 
         match expr.operator.token_type {
             TokensType::Plus => {
-                if let Ok(value) = left + right {
+                if let Ok(value) = EnvironmentValue::add(&left, &right) {
                     return Ok(value);
                 } else {
                     Err(Error {
@@ -306,14 +306,14 @@ impl Interpreter {
                 return Ok(self.number_binary_calculate(&expr.operator, left, right)?)
             }
             TokensType::BangEqual => {
-                let result = left.partial_eq(right);
+                let result = EnvironmentValue::partial_eq(&left, &right);
                 if result.is_ok() {
                     return Ok(result.unwrap());
                 }
                 Err(err)
             }
             TokensType::EqualEqual => {
-                let result = left.eq(right);
+                let result = EnvironmentValue::eq(&left, &right);
                 if result.is_ok() {
                     return Ok(result.unwrap());
                 }
@@ -333,8 +333,8 @@ impl Interpreter {
         left: EnvironmentValue,
         right: EnvironmentValue,
     ) -> Result<EnvironmentValue, Error> {
-        let (left_is_number, _) = left.is_number();
-        let (right_is_number, _) = right.is_number();
+        let left_is_number = left.is_number();
+        let right_is_number = right.is_number();
 
         if !left_is_number || !right_is_number {
             return Err(Error {
@@ -348,13 +348,13 @@ impl Interpreter {
         }
 
         match operator.token_type {
-            TokensType::Minus => Ok((left - right).unwrap()),
-            TokensType::Slash => Ok((left / right).unwrap()),
-            TokensType::Star => Ok((left * right).unwrap()),
-            TokensType::Greater => Ok((left.gt(right)).unwrap()),
-            TokensType::GreaterEqual => Ok((left.ge(right)).unwrap()),
-            TokensType::Less => Ok((left.lt(right)).unwrap()),
-            TokensType::LessEqual => Ok((left.le(right)).unwrap()),
+            TokensType::Minus => Ok(EnvironmentValue::sub(&left, &right).unwrap()),
+            TokensType::Slash => Ok(EnvironmentValue::div(&left, &right).unwrap()),
+            TokensType::Star => Ok(EnvironmentValue::mul(&left, &right).unwrap()),
+            TokensType::Greater => Ok(EnvironmentValue::gt(&left, &right).unwrap()),
+            TokensType::GreaterEqual => Ok(EnvironmentValue::ge(&left, &right).unwrap()),
+            TokensType::Less => Ok(EnvironmentValue::lt(&left, &right).unwrap()),
+            TokensType::LessEqual => Ok(EnvironmentValue::le(&left, &right).unwrap()),
             _ => Err(Error {
                 line: operator.line,
                 column: operator.column,
@@ -413,7 +413,7 @@ impl Interpreter {
 
         match expr.operator.token_type {
             TokensType::Minus => {
-                let (right_is_number, _) = right.is_number();
+                let right_is_number = right.is_number();
                 if !right_is_number {
                     return Err(Error {
                         line: expr.operator.line,
@@ -421,7 +421,7 @@ impl Interpreter {
                         message: format!("Operand must be a number at {}", &expr.operator.lexeme),
                     });
                 }
-                return Ok((-right).unwrap());
+                return Ok(EnvironmentValue::neg(&right).unwrap());
             }
             TokensType::Bang => Ok(EnvironmentValue::Bool(!right.is_truthy())),
             _ => Err(Error {
