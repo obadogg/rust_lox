@@ -4,7 +4,8 @@ use crate::utils::utils::get_rc_ref_address;
 use super::super::parser::{expression::*, statement::*};
 use super::super::scanner::{scanner::*, tokens::*};
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+
 use std::{cell::RefCell, rc::Rc};
 
 pub static THIS_STRING: &'static str = "this";
@@ -29,8 +30,8 @@ pub enum ClassType {
 #[derive(Debug, Clone)]
 pub struct ScopeAnalyst {
     pub statements: Rc<Vec<Stmt>>,
-    pub scopes: Vec<HashMap<*const u8, bool>>,
-    pub scope_record: Rc<RefCell<HashMap<usize, usize>>>,
+    pub scopes: Vec<BTreeMap<*const u8, bool>>,
+    pub scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
     pub function_type: FunctionType,
     pub class_type: ClassType,
     pub errors: Vec<Error>,
@@ -41,7 +42,7 @@ impl ScopeAnalyst {
         ScopeAnalyst {
             statements,
             scopes: Vec::new(),
-            scope_record: Rc::new(RefCell::new(HashMap::new())),
+            scope_record: Rc::new(RefCell::new(BTreeMap::new())),
             function_type: FunctionType::None,
             class_type: ClassType::None,
             errors: Vec::new(),
@@ -125,7 +126,7 @@ impl ScopeAnalyst {
     }
 
     fn visit_for_stmt(&mut self, stmt: &ForStatement) {
-        self.scopes.push(HashMap::new());
+        self.scopes.push(BTreeMap::new());
         if let Some(initializer) = &stmt.initializer {
             self.evaluate_statement_item(initializer);
         }
@@ -148,7 +149,7 @@ impl ScopeAnalyst {
     }
 
     fn visit_block_stmt(&mut self, stmt: &BlockStatement) {
-        self.scopes.push(HashMap::new());
+        self.scopes.push(BTreeMap::new());
         self.evaluate_statement_list(&stmt.statements);
         self.scopes.pop();
     }
@@ -357,7 +358,7 @@ impl ScopeAnalyst {
         let previous_function_type = self.function_type;
         self.function_type = function_type;
 
-        self.scopes.push(HashMap::new());
+        self.scopes.push(BTreeMap::new());
 
         for statement in &stmt.params {
             self.declare(statement);

@@ -43,19 +43,20 @@ impl EnvironmentValue {
 
     pub fn is_number(&self) -> bool {
         match self {
-            EnvironmentValue::Number(number_val) => true,
+            EnvironmentValue::Number(_) => true,
             _ => false,
         }
     }
 
-    pub fn is_string(&self) -> (bool, Option<String>) {
+    pub fn is_string(&self) -> bool {
         match self {
-            EnvironmentValue::String(string_val) => (true, Some(string_val.clone())),
-            _ => (false, None),
+            EnvironmentValue::String(_) => true,
+            _ => false,
         }
     }
 
     // The lt, le, gt, and ge methods of this trait can be called using the <, <=, >, and >= operators, respectively.
+
     pub fn lt(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {

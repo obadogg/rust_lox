@@ -4,20 +4,21 @@ use crate::interpreter::lox_function::*;
 use crate::interpreter::lox_instance::*;
 use crate::scanner::scanner::Error;
 use crate::semantic::scope_analyst::*;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct LoxClass {
     name: Rc<String>,
     superclass: Option<Rc<RefCell<LoxClass>>>,
-    methods: HashMap<*const u8, Rc<RefCell<LoxFunction>>>,
+    methods: BTreeMap<*const u8, Rc<RefCell<LoxFunction>>>,
 }
 
 impl LoxClass {
     pub fn new(
         name: Rc<String>,
         superclass: Option<Rc<RefCell<LoxClass>>>,
-        methods: HashMap<*const u8, Rc<RefCell<LoxFunction>>>,
+        methods: BTreeMap<*const u8, Rc<RefCell<LoxFunction>>>,
     ) -> Self {
         LoxClass {
             name,

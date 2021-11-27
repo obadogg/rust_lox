@@ -1,6 +1,6 @@
 use super::tokens::{init_tokens, Token, TokensType, ValueType};
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 use std::str::Chars;
 use std::{cell::RefCell, rc::Rc};
 
@@ -19,9 +19,9 @@ pub struct Scanner<'a> {
     current: u8,
     line: u8,
     peeked: VecDeque<char>,
-    token_map: HashMap<&'a str, TokensType>,
+    token_map: BTreeMap<&'a str, TokensType>,
     errors: Vec<Error>,
-    lexeme_cache: HashMap<Rc<String>, Rc<String>>,
+    lexeme_cache: BTreeMap<Rc<String>, Rc<String>>,
 }
 
 impl<'a> Scanner<'a> {
@@ -41,7 +41,7 @@ impl<'a> Scanner<'a> {
             peeked,
             token_map: init_tokens(),
             errors: Vec::new(),
-            lexeme_cache: HashMap::new(),
+            lexeme_cache: BTreeMap::new(),
         }
     }
 

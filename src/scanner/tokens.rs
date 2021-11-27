@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
@@ -72,7 +72,7 @@ pub struct Token {
 macro_rules! hash_map_negative {
     ($($k:expr => $v:expr),*) => {
         {
-            let mut map = HashMap::new();
+            let mut map = BTreeMap::new();
             $(
                 map.insert($v,$k);
             )*
@@ -85,7 +85,7 @@ macro_rules! hash_map_negative {
 macro_rules! hash_map {
     ($($k:expr => $v:expr),*) => {
         {
-            let mut map = HashMap::new();
+            let mut map = BTreeMap::new();
             $(
                 map.insert($k,$v);
             )*
@@ -94,7 +94,7 @@ macro_rules! hash_map {
     };
 }
 
-pub fn init_tokens<'a>() -> HashMap<&'a str, TokensType> {
+pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
     hash_map_negative! {
         TokensType::And => "and",
         TokensType::Class => "class",

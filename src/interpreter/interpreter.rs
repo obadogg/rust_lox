@@ -6,37 +6,28 @@ use crate::utils::utils::get_rc_ref_address;
 
 use super::lox_class::*;
 use super::lox_function::LoxFunction;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
     global: Rc<RefCell<Environment>>,
     environment: Rc<RefCell<Environment>>,
     statements: Rc<Vec<Stmt>>,
-    scope_record: Rc<RefCell<HashMap<usize, usize>>>,
-    expr_values_map: HashMap<*const u8, Rc<EnvironmentValue>>,
+    scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
     pub return_val: EnvironmentValue,
 }
 
 impl Interpreter {
     pub fn new(
         statements: Rc<Vec<Stmt>>,
-        scope_record: Rc<RefCell<HashMap<usize, usize>>>,
-        expr_count: Option<usize>,
+        scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
     ) -> Self {
         let env = Rc::new(RefCell::new(Environment::new(None)));
-        let expr_values_map;
-        if let Some(count) = expr_count {
-            expr_values_map = HashMap::with_capacity(count)
-        } else {
-            expr_values_map = HashMap::new();
-        }
         Interpreter {
             global: env.clone(),
             environment: env.clone(),
             statements,
             scope_record,
-            expr_values_map,
             return_val: EnvironmentValue::None,
         }
     }
@@ -139,15 +130,14 @@ impl Interpreter {
             self.evaluate_statement_item(initializer)?;
         }
 
-        if stmt.condition.is_some() {
-            while self
-                .evaluate_expression_item(stmt.condition.as_ref().unwrap())?
-                .is_truthy()
-            {
+        if let Some(condition) = &stmt.condition {
+            let mut flag = self.evaluate_expression_item(condition)?.is_truthy();
+            while flag {
                 self.evaluate_statement_item(&stmt.body)?;
 
                 if let Some(updator) = &stmt.updator {
                     self.evaluate_expression_item(updator)?;
+                    flag = self.evaluate_expression_item(condition)?.is_truthy();
                 }
             }
         }
@@ -183,11 +173,11 @@ impl Interpreter {
 
         for statement in stmts.iter() {
             if let Err(err) = self.evaluate_statement_item(statement) {
-                self.environment = previous.clone();
+                self.environment = previous;
                 return Err(err);
             }
         }
-        self.environment = previous.clone();
+        self.environment = previous;
         Ok(())
     }
 
@@ -246,7 +236,7 @@ impl Interpreter {
                     (f_stmt.name.lexeme.as_ptr(), method)
                 }
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<BTreeMap<_, _>>();
 
         let lox_class = EnvironmentValue::LoxClass(Rc::new(RefCell::new(LoxClass::new(
             stmt.name.lexeme.clone(),
@@ -271,15 +261,6 @@ impl Interpreter {
     ) -> Result<EnvironmentValue, Error> {
         let left = self.evaluate_expression_item(&expr.left)?;
         let right = self.evaluate_expression_item(&expr.right)?;
-
-        let err = Error {
-            line: expr.operator.line,
-            column: expr.operator.column,
-            message: format!(
-                "\"!=\" and \"==\" operands only support number/string/boolean {}",
-                &expr.operator.lexeme
-            ),
-        };
 
         match expr.operator.token_type {
             TokensType::Plus => {
@@ -310,14 +291,28 @@ impl Interpreter {
                 if result.is_ok() {
                     return Ok(result.unwrap());
                 }
-                Err(err)
+                Err(Error {
+                    line: expr.operator.line,
+                    column: expr.operator.column,
+                    message: format!(
+                        "\"!=\" and \"==\" operands only support number/string/boolean {}",
+                        &expr.operator.lexeme
+                    ),
+                })
             }
             TokensType::EqualEqual => {
                 let result = EnvironmentValue::eq(&left, &right);
                 if result.is_ok() {
                     return Ok(result.unwrap());
                 }
-                Err(err)
+                Err(Error {
+                    line: expr.operator.line,
+                    column: expr.operator.column,
+                    message: format!(
+                        "\"!=\" and \"==\" operands only support number/string/boolean {}",
+                        &expr.operator.lexeme
+                    ),
+                })
             }
             _ => Err(Error {
                 line: expr.operator.line,

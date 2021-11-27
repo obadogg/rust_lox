@@ -23,6 +23,7 @@ fn main() {
             sum = sum + 1;
         }
         print sum;
+        print sum;
     ",
     );
     let mut s = scanner::scanner::Scanner::new(&str);
@@ -37,11 +38,8 @@ fn main() {
     let mut s_a = semantic::scope_analyst::ScopeAnalyst::new(statements.clone());
     s_a.analysis();
 
-    let mut inter = interpreter::interpreter::Interpreter::new(
-        statements.clone(),
-        s_a.scope_record.clone(),
-        Some(p.expr_count),
-    );
+    let mut inter =
+        interpreter::interpreter::Interpreter::new(statements.clone(), s_a.scope_record.clone());
 
     inter.interpret();
 
