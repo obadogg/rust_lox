@@ -36,7 +36,7 @@ impl LoxInstance {
             return Ok(borrow_function.bind(
                 EnvironmentValue::LoxInstance(Rc::new(RefCell::new(self.clone()))),
                 interpreter,
-            ));
+            )?);
         }
 
         Err(Error {

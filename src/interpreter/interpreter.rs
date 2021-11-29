@@ -10,8 +10,6 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
-    // global: Rc<RefCell<Environment>>,
-    // environment: Rc<RefCell<Environment>>,
     pub envs: EnvironmentList,
     statements: Rc<Vec<Stmt>>,
     scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
@@ -23,10 +21,7 @@ impl Interpreter {
         statements: Rc<Vec<Stmt>>,
         scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
     ) -> Self {
-        let env = Rc::new(RefCell::new(Environment::new(None)));
         Interpreter {
-            // global: env.clone(),
-            // environment: env.clone(),
             envs: EnvironmentList::new(),
             statements,
             scope_record,
@@ -583,7 +578,7 @@ impl Interpreter {
                     .find_method(&expr.method.lexeme.as_ptr());
 
                 if let Some(method) = method {
-                    return Ok(method.clone().borrow_mut().bind(obj.clone(), self));
+                    return Ok(method.clone().borrow_mut().bind(obj.clone(), self)?);
                 }
             }
             _ => {}

@@ -1,4 +1,4 @@
-use crate::environment::{environment::*, environment_value::EnvironmentValue};
+use crate::environment::environment_value::EnvironmentValue;
 use crate::interpreter::interpreter::Interpreter;
 use crate::parser::statement::FunctionStatement;
 use crate::scanner::scanner::Error;
@@ -63,9 +63,9 @@ impl LoxFunction {
         &mut self,
         instance: EnvironmentValue,
         interpreter: &mut Interpreter,
-    ) -> EnvironmentValue {
+    ) -> Result<EnvironmentValue, Error> {
         let from_env_pos = interpreter.envs.next(Some(self.closure));
-        interpreter.envs.define(THIS_STRING.as_ptr(), instance);
+        interpreter.envs.define(THIS_STRING.as_ptr(), instance)?;
 
         let lox_function = LoxFunction::new(
             self.declaration.clone(),
@@ -74,6 +74,8 @@ impl LoxFunction {
         );
         interpreter.envs.go_to_env_by_pos(from_env_pos);
 
-        return EnvironmentValue::LoxFunction(Rc::new(RefCell::new(lox_function)));
+        return Ok(EnvironmentValue::LoxFunction(Rc::new(RefCell::new(
+            lox_function,
+        ))));
     }
 }

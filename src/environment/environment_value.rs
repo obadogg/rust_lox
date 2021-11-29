@@ -3,7 +3,7 @@ use crate::interpreter::lox_class::LoxClass;
 use crate::interpreter::lox_function::LoxFunction;
 use crate::interpreter::lox_instance::LoxInstance;
 
-use std::{cell::RefCell, ops, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub enum EnvironmentValue {
@@ -44,13 +44,6 @@ impl EnvironmentValue {
     pub fn is_number(&self) -> bool {
         match self {
             EnvironmentValue::Number(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_string(&self) -> bool {
-        match self {
-            EnvironmentValue::String(_) => true,
             _ => false,
         }
     }

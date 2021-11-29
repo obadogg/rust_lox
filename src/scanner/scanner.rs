@@ -1,8 +1,8 @@
 use super::tokens::{init_tokens, Token, TokensType, ValueType};
 
 use std::collections::{BTreeMap, VecDeque};
+use std::rc::Rc;
 use std::str::Chars;
-use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Error {

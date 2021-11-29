@@ -1,7 +1,7 @@
 use super::super::scanner::{scanner::*, tokens::*};
 use super::{expression::*, statement::*};
 use std::collections::VecDeque;
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 /**
  * program        → declaration* EOF

@@ -4,8 +4,7 @@ mod parser;
 mod scanner;
 mod semantic;
 mod utils;
-use std::collections::HashMap;
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use std::time::Instant;
 
@@ -49,7 +48,7 @@ fn main() {
     p.parse();
 
     let statements = Rc::new(p.statements);
-    println!("{:#?} , {}", statements.clone(), p.expr_count);
+    // println!("{:#?} , {}", statements.clone(), p.expr_count);
 
     let mut s_a = semantic::scope_analyst::ScopeAnalyst::new(statements.clone());
     s_a.analysis();
