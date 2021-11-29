@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+use std::rc::Rc;
 
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 pub enum TokensType {
@@ -61,7 +62,7 @@ pub enum ValueType {
 #[derive(Debug, Clone)]
 pub struct Token {
     pub token_type: TokensType,
-    pub lexeme: String,
+    pub lexeme: Rc<String>,
     pub line: u8,
     pub column: u8,
     pub literal: Option<ValueType>,
@@ -71,7 +72,7 @@ pub struct Token {
 macro_rules! hash_map_negative {
     ($($k:expr => $v:expr),*) => {
         {
-            let mut map = HashMap::new();
+            let mut map = BTreeMap::new();
             $(
                 map.insert($v,$k);
             )*
@@ -84,7 +85,7 @@ macro_rules! hash_map_negative {
 macro_rules! hash_map {
     ($($k:expr => $v:expr),*) => {
         {
-            let mut map = HashMap::new();
+            let mut map = BTreeMap::new();
             $(
                 map.insert($k,$v);
             )*
@@ -93,7 +94,7 @@ macro_rules! hash_map {
     };
 }
 
-pub fn init_tokens<'a>() -> HashMap<&'a str, TokensType> {
+pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
     hash_map_negative! {
         TokensType::And => "and",
         TokensType::Class => "class",

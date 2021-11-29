@@ -13,7 +13,7 @@ pub enum Stmt {
     Block(Rc<BlockStatement>),
     Function(Rc<FunctionStatement>),
     Return(ReturnStatement),
-    Class(ClassStatement),
+    Class(Rc<ClassStatement>),
 }
 
 #[derive(Debug, Clone)]
@@ -30,6 +30,7 @@ pub struct IfStatement {
 
 #[derive(Debug, Clone)]
 pub struct PrintStatement {
+    pub keyword: Token,
     pub expression: Expr,
 }
 
@@ -75,5 +76,5 @@ pub struct ReturnStatement {
 pub struct ClassStatement {
     pub name: Token,
     pub superclass: Option<Expr>,
-    pub methods: Vec<FunctionStatement>,
+    pub methods: Vec<Rc<FunctionStatement>>,
 }

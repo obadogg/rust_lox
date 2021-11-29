@@ -65,19 +65,21 @@ enum FunType {
 
 #[derive(Debug)]
 pub struct Parser {
-    pub tokens: VecDeque<Token>,
+    pub tokens: VecDeque<Rc<Token>>,
     pub current: u8,
     pub statements: Vec<Stmt>,
     pub errors: Vec<Error>,
+    pub expr_count: usize,
 }
 
 impl Parser {
-    pub fn new(tokens: VecDeque<Token>) -> Self {
+    pub fn new(tokens: VecDeque<Rc<Token>>) -> Self {
         Parser {
             tokens,
             current: 0,
             statements: Vec::new(),
             errors: Vec::new(),
+            expr_count: 0,
         }
     }
 
@@ -89,6 +91,7 @@ impl Parser {
                 }
                 Err(_) => {
                     self.synchronize();
+                    panic!("oops!parser panic: {:#?}", self.errors);
                 }
             }
         }
@@ -99,7 +102,7 @@ impl Parser {
             return Ok(Stmt::Function(Rc::new(self.fun_decl(FunType::Function)?)));
         }
         if self.match_token(TokensType::Class) {
-            return Ok(Stmt::Class(self.class_decl()?));
+            return Ok(Stmt::Class(Rc::new(self.class_decl()?)));
         }
         if self.match_token(TokensType::Var) {
             return Ok(Stmt::Var(self.var_decl()?));
@@ -109,11 +112,14 @@ impl Parser {
     }
 
     fn fun_decl(&mut self, fun_type: FunType) -> Result<FunctionStatement, ()> {
-        let name = self.consume(TokensType::Identifier, String::from("Expect name"))?;
+        let name = self.consume(
+            TokensType::Identifier,
+            format!("Expect {:?} name", fun_type),
+        )?;
         let name = name.clone();
         self.consume(
             TokensType::LeftParen,
-            String::from("Expect \"(\" after name"),
+            format!("Expect \"(\" after {:?} name", fun_type),
         )?;
 
         let mut params = Vec::new();
@@ -135,7 +141,7 @@ impl Parser {
         )?;
         self.consume(
             TokensType::LeftBrace,
-            String::from("Expect \"{\" before body"),
+            format!("Expect \"{{\" before {:?} body", fun_type),
         )?;
 
         let body = self.block()?;
@@ -166,7 +172,7 @@ impl Parser {
 
         let mut methods = Vec::new();
         while !self.check(TokensType::RightBrace) && !self.is_end() {
-            methods.push(self.fun_decl(FunType::Method)?);
+            methods.push(Rc::new(self.fun_decl(FunType::Method)?));
         }
 
         self.consume(
@@ -200,11 +206,8 @@ impl Parser {
         let mut statements = Vec::new();
 
         while !self.check(TokensType::RightBrace) && !self.is_end() {
-            if let Ok(statement) = self.declaration() {
-                statements.push(statement);
-            } else {
-                //TODO:
-            }
+            let stmt = self.declaration()?;
+            statements.push(stmt);
         }
 
         self.consume(
@@ -269,20 +272,27 @@ impl Parser {
     }
 
     fn print_stmt(&mut self) -> Result<Stmt, ()> {
+        let keyword = clone_previous_token!(self);
         let expression = self.expression()?;
         self.consume(
             TokensType::Semicolon,
             String::from("Expect \";\" after value"),
         )?;
-        Ok(Stmt::Print(PrintStatement { expression }))
+        Ok(Stmt::Print(PrintStatement {
+            keyword,
+            expression,
+        }))
     }
 
     fn return_stmt(&mut self) -> Result<Stmt, ()> {
         let keyword = clone_previous_token!(self);
-        let mut value = self.expression()?;
+        let value;
         if self.check(TokensType::Semicolon) {
             value = Expr::Literal(LiteralExpression { value: None });
+        } else {
+            value = self.expression()?;
         }
+
         self.consume(
             TokensType::Semicolon,
             String::from("Expect \";\" after return value"),
@@ -375,7 +385,7 @@ impl Parser {
             let equals = clone_previous_token!(self);
             let value = self.assignment()?;
 
-            match expression {
+            match &expression {
                 Expr::Variable(variable) => {
                     let name = variable.name.clone();
                     return Ok(Expr::Assignment(Rc::new(AssignmentExpression {
@@ -388,7 +398,7 @@ impl Parser {
                         object: get_expression.object.clone(),
                         name: get_expression.name.clone(),
                         value,
-                    })))
+                    })));
                 }
                 _ => {}
             }
@@ -406,28 +416,33 @@ impl Parser {
     fn primary(&mut self) -> Result<Expr, ()> {
         if self.match_token(TokensType::Number) || self.match_token(TokensType::String) {
             let literal = clone_previous_token!(self).literal;
+            self.increase_expr_count();
             return Ok(Expr::Literal(LiteralExpression { value: literal }));
         }
 
         if self.match_token(TokensType::True) {
+            self.increase_expr_count();
             return Ok(Expr::Literal(LiteralExpression {
                 value: Some(ValueType::Bool(true)),
             }));
         }
 
         if self.match_token(TokensType::False) {
+            self.increase_expr_count();
             return Ok(Expr::Literal(LiteralExpression {
                 value: Some(ValueType::Bool(false)),
             }));
         }
 
         if self.match_token(TokensType::Nil) {
+            self.increase_expr_count();
             return Ok(Expr::Literal(LiteralExpression { value: None }));
         }
 
         if self.match_token(TokensType::This) {
             let keyword = self.previous();
             let keyword = keyword.clone();
+            self.increase_expr_count();
             return Ok(Expr::This(Rc::new(ThisExpression { keyword })));
         }
 
@@ -442,11 +457,13 @@ impl Parser {
                 String::from("Expect superclass method name"),
             )?;
             let method = clone_previous_token!(self);
+            self.increase_expr_count();
             return Ok(Expr::Super(Rc::new(SuperExpression { keyword, method })));
         }
 
         if self.match_token(TokensType::Identifier) {
             let name = clone_previous_token!(self);
+            self.increase_expr_count();
             return Ok(Expr::Variable(Rc::new(VariableExpression { name })));
         }
 
@@ -458,13 +475,14 @@ impl Parser {
                 TokensType::RightParen,
                 String::from("Expect \")\" after expression"),
             )?;
+            self.increase_expr_count();
             return expression;
         }
 
         self.errors.push(Error {
             line: self.peek().line,
             column: self.peek().column,
-            message: String::from("Unexpected token \"\""), //TODO:
+            message: format!("Unexpected token \"{:?}\"", self.peek().lexeme),
         });
 
         Err(())
@@ -476,6 +494,9 @@ impl Parser {
         while self.match_token(TokensType::Or) {
             let operator = clone_previous_token!(self);
             let right = self.logic_and()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Logical(Rc::new(LogicalExpression {
                 left: expression,
                 operator,
@@ -492,6 +513,9 @@ impl Parser {
         while self.match_token(TokensType::And) {
             let operator = clone_previous_token!(self);
             let right = self.equality()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Logical(Rc::new(LogicalExpression {
                 left: expression,
                 operator,
@@ -508,6 +532,9 @@ impl Parser {
         while self.match_token(TokensType::BangEqual) || self.match_token(TokensType::EqualEqual) {
             let operator = clone_previous_token!(self);
             let right = self.comparison()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Binary(Rc::new(BinaryExpression {
                 left: expression,
                 operator,
@@ -528,6 +555,9 @@ impl Parser {
         {
             let operator = clone_previous_token!(self);
             let right = self.term()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Binary(Rc::new(BinaryExpression {
                 left: expression,
                 operator,
@@ -545,6 +575,8 @@ impl Parser {
             let operator = clone_previous_token!(self);
             let right = self.factor()?;
 
+            self.increase_expr_count();
+
             expression = Expr::Binary(Rc::new(BinaryExpression {
                 left: expression,
                 operator,
@@ -561,6 +593,9 @@ impl Parser {
         while self.match_token(TokensType::Slash) || self.match_token(TokensType::Star) {
             let operator = clone_previous_token!(self);
             let right = self.unary()?;
+
+            self.increase_expr_count();
+
             expression = Expr::Binary(Rc::new(BinaryExpression {
                 left: expression,
                 operator,
@@ -575,6 +610,9 @@ impl Parser {
         if self.match_token(TokensType::Bang) || self.match_token(TokensType::Minus) {
             let operator = clone_previous_token!(self);
             let right = self.unary()?;
+
+            self.increase_expr_count();
+
             return Ok(Expr::Unary(Rc::new(UnaryExpression {
                 operator,
                 expression: right,
@@ -597,6 +635,9 @@ impl Parser {
                         String::from("Expect property name after \".\""),
                     )?;
                     let name = name.clone();
+
+                    self.increase_expr_count();
+
                     expression = Expr::Get(Rc::new(GetExpression {
                         object: expression,
                         name,
@@ -626,6 +667,8 @@ impl Parser {
             String::from("Expect \")\" after arguments"),
         )?;
         let end_parenthese = end_parenthese.clone();
+
+        self.increase_expr_count();
 
         Ok(Expr::Call(Rc::new(CallExpression {
             callee,
@@ -685,6 +728,10 @@ impl Parser {
             message,
         });
         Err(())
+    }
+
+    fn increase_expr_count(&mut self) {
+        self.expr_count = self.expr_count + 1;
     }
 
     fn synchronize(&mut self) {

@@ -1,13 +1,16 @@
 use crate::hash_map;
-use crate::parser::statement;
 use crate::utils::utils::get_rc_ref_address;
 
 use super::super::parser::{expression::*, statement::*};
 use super::super::scanner::{scanner::*, tokens::*};
 
-use super::super::utils::*;
-use std::collections::HashMap;
-use std::rc::Rc;
+use std::collections::BTreeMap;
+
+use std::{cell::RefCell, rc::Rc};
+
+pub static THIS_STRING: &'static str = "this";
+pub static SUPER_STRING: &'static str = "super";
+pub static INIT_STRING: &'static str = "init";
 
 #[derive(Debug, Copy, Clone)]
 pub enum FunctionType {
@@ -27,9 +30,8 @@ pub enum ClassType {
 #[derive(Debug, Clone)]
 pub struct ScopeAnalyst {
     pub statements: Rc<Vec<Stmt>>,
-    pub scopes: Vec<HashMap<String, bool>>,
-    pub scope_record: HashMap<usize, usize>,
-    pub scope_record2: HashMap<String, usize>,
+    pub scopes: Vec<BTreeMap<*const u8, bool>>,
+    pub scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
     pub function_type: FunctionType,
     pub class_type: ClassType,
     pub errors: Vec<Error>,
@@ -40,8 +42,7 @@ impl ScopeAnalyst {
         ScopeAnalyst {
             statements,
             scopes: Vec::new(),
-            scope_record: HashMap::new(),
-            scope_record2: HashMap::new(),
+            scope_record: Rc::new(RefCell::new(BTreeMap::new())),
             function_type: FunctionType::None,
             class_type: ClassType::None,
             errors: Vec::new(),
@@ -70,7 +71,6 @@ impl ScopeAnalyst {
             Stmt::Block(stmt_block) => self.visit_block_stmt(stmt_block),
             Stmt::Return(stmt_return) => self.visit_return_stmt(stmt_return),
             Stmt::Class(stmt_class) => self.visit_class_stmt(stmt_class),
-            _ => {}
         }
     }
 
@@ -94,7 +94,6 @@ impl ScopeAnalyst {
             Expr::Set(expr_set) => self.visit_set_expr(expr_set),
             Expr::This(expr_this) => self.visit_this_expr(expr_this),
             Expr::Super(expr_super) => self.visit_super_expr(expr_super),
-            _ => {}
         }
     }
 
@@ -127,7 +126,7 @@ impl ScopeAnalyst {
     }
 
     fn visit_for_stmt(&mut self, stmt: &ForStatement) {
-        self.scopes.push(HashMap::new());
+        self.scopes.push(BTreeMap::new());
         if let Some(initializer) = &stmt.initializer {
             self.evaluate_statement_item(initializer);
         }
@@ -150,7 +149,7 @@ impl ScopeAnalyst {
     }
 
     fn visit_block_stmt(&mut self, stmt: &BlockStatement) {
-        self.scopes.push(HashMap::new());
+        self.scopes.push(BTreeMap::new());
         self.evaluate_statement_list(&stmt.statements);
         self.scopes.pop();
     }
@@ -207,20 +206,24 @@ impl ScopeAnalyst {
                         self.errors.push(Error {
                             line: stmt.name.line,
                             column: stmt.name.column,
-                            message: String::from("A class can't inherit from itself(\"\""), //TODO:
+                            message: format!(
+                                "A class can't inherit from itself(\"{:?}\"",
+                                stmt.name.lexeme
+                            ),
                         })
                     }
                 }
                 _ => {}
             }
             self.evaluate_expression_item(superclass);
-            self.scopes.push(hash_map! {String::from("super") => true});
+            self.scopes.push(hash_map! {SUPER_STRING.as_ptr() => true});
+            self.class_type = ClassType::SubClass;
         }
 
-        self.scopes.push(hash_map! {String::from("this") => true});
+        self.scopes.push(hash_map! {THIS_STRING.as_ptr() => true});
 
         for method in stmt.methods.iter() {
-            if method.name.lexeme == "init" {
+            if *method.name.lexeme == "init" {
                 self.evaluate_function(method, FunctionType::Initializer);
             } else {
                 self.evaluate_function(method, FunctionType::Method)
@@ -257,12 +260,15 @@ impl ScopeAnalyst {
     fn visit_variable_expr(&mut self, expr: &Rc<VariableExpression>) {
         if self.scopes.len() != 0 {
             let last = self.scopes.last().unwrap();
-            if let Some(flag) = last.get(&expr.name.lexeme) {
+            if let Some(flag) = last.get(&ScopeAnalyst::get_scope_key_name(&expr.name.lexeme)) {
                 if !flag {
                     self.errors.push(Error {
                         line: expr.name.line,
                         column: expr.name.column,
-                        message: String::from("Can't read local variable in its own initializer()"), //TODO:
+                        message: format!(
+                            "Can't read local variable in its own initializer(\"{}\")",
+                            expr.name.lexeme
+                        ),
                     });
                 }
             }
@@ -328,8 +334,8 @@ impl ScopeAnalyst {
 
     fn calculate(&mut self, address: usize, token: &Token) {
         for (pos, scope) in self.scopes.iter().rev().enumerate() {
-            if scope.contains_key(&token.lexeme) {
-                self.scope_record.insert(address, pos);
+            if scope.contains_key(&ScopeAnalyst::get_scope_key_name(&token.lexeme)) {
+                self.scope_record.borrow_mut().insert(address, pos);
             }
         }
     }
@@ -337,14 +343,14 @@ impl ScopeAnalyst {
     fn declare(&mut self, name: &Token) {
         if self.scopes.len() != 0 {
             let last = self.scopes.last_mut().unwrap();
-            last.insert(name.lexeme.clone(), false);
+            last.insert(ScopeAnalyst::get_scope_key_name(&name.lexeme), false);
         }
     }
 
     fn define(&mut self, name: &Token) {
         if self.scopes.len() != 0 {
             let last = self.scopes.last_mut().unwrap();
-            last.insert(name.lexeme.clone(), true);
+            last.insert(ScopeAnalyst::get_scope_key_name(&name.lexeme), true);
         }
     }
 
@@ -352,7 +358,7 @@ impl ScopeAnalyst {
         let previous_function_type = self.function_type;
         self.function_type = function_type;
 
-        self.scopes.push(HashMap::new());
+        self.scopes.push(BTreeMap::new());
 
         for statement in &stmt.params {
             self.declare(statement);
@@ -363,5 +369,20 @@ impl ScopeAnalyst {
         self.scopes.pop();
 
         self.function_type = previous_function_type;
+    }
+
+    pub fn get_scope_key_name(lexeme: &Rc<String>) -> *const u8 {
+        if **lexeme == INIT_STRING {
+            return INIT_STRING.as_ptr();
+        }
+
+        if **lexeme == THIS_STRING {
+            return THIS_STRING.as_ptr();
+        }
+
+        if **lexeme == SUPER_STRING {
+            return SUPER_STRING.as_ptr();
+        }
+        return lexeme.as_ptr();
     }
 }

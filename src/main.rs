@@ -1,9 +1,12 @@
+mod environment;
+mod interpreter;
 mod parser;
 mod scanner;
 mod semantic;
 mod utils;
-use std::collections::HashMap;
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
+
+use std::time::Instant;
 
 #[derive(Debug, Clone)]
 struct Abc {
@@ -11,22 +14,31 @@ struct Abc {
 }
 
 fn main() {
+    let now = Instant::now();
     let str = String::from(
         "
         class Person {
-            init(name, birth) {
-              this.name = name;
-              this.birth = birth;
+            init(name1, birth1) {
+              this.name = name1;
+              this.birth = birth1;
             }
           
             introduceMySelf() {
               print \"my name is \" + this.name;
+              print \"i am \"  + \" years old\";
               print \"thanks for coming\";
+              return 1111;
             }
           }
           
           var me = Person(\"aadonkeyz\", 1995);
-          me.introduceMySelf();
+          print me.introduceMySelf();
+
+          var sum = 1;
+          for(var i = 0;i < 10000000; i = i + 1){
+              sum = sum + 1;
+          }
+          print sum;
     ",
     );
     let mut s = scanner::scanner::Scanner::new(&str);
@@ -36,24 +48,17 @@ fn main() {
     p.parse();
 
     let statements = Rc::new(p.statements);
+    // println!("{:#?} , {}", statements.clone(), p.expr_count);
 
     let mut s_a = semantic::scope_analyst::ScopeAnalyst::new(statements.clone());
     s_a.analysis();
 
-    // let statements2 = statements.clone();
+    let mut inter =
+        interpreter::interpreter::Interpreter::new(statements.clone(), s_a.scope_record.clone());
 
-    println!("ssss{:#?}", &s_a);
-    // let ddd = Rc::into_raw(test) as usize;
-    // let mmm = Rc::into_raw(eee) as usize;
-    // let arr = Rc::new(RefCell::new(vec![1]));
+    inter.interpret();
 
-    // arr.borrow_mut().push(2);
+    let dur = now.elapsed();
 
-    // println!(
-    //     "address:{},{}",
-    //     Rc::into_raw(statements) as usize,
-    //     Rc::into_raw(statements2) as usize
-    // );
-
-    // println!("token length: {}", s.tokens.len());
+    println!("耗时: {:?}", dur);
 }
