@@ -57,7 +57,8 @@ impl LoxClass {
         if let Some(initializer) = self.methods.get(&INIT_STRING.as_ptr()) {
             let mut borrow_function = initializer.borrow_mut();
 
-            let value = borrow_function.bind(EnvironmentValue::LoxInstance(instance.clone()));
+            let value =
+                borrow_function.bind(EnvironmentValue::LoxInstance(instance.clone()), interpreter);
 
             match value {
                 EnvironmentValue::LoxFunction(lox_function) => {

@@ -56,7 +56,7 @@ impl EnvironmentValue {
     }
 
     // The lt, le, gt, and ge methods of this trait can be called using the <, <=, >, and >= operators, respectively.
-
+    #[inline]
     pub fn lt(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -66,6 +66,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn le(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -75,6 +76,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn gt(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -84,6 +86,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn ge(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -93,6 +96,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn eq(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -102,6 +106,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn partial_eq(
         lhs: &EnvironmentValue,
         rhs: &EnvironmentValue,
@@ -114,6 +119,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn add(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -126,6 +132,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn sub(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -135,6 +142,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn div(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -144,6 +152,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn mul(lhs: &EnvironmentValue, rhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
@@ -153,6 +162,7 @@ impl EnvironmentValue {
         }
     }
 
+    #[inline]
     pub fn neg(lhs: &EnvironmentValue) -> Result<EnvironmentValue, ()> {
         match lhs {
             EnvironmentValue::Number(left) => return Ok(EnvironmentValue::Number(-left)),

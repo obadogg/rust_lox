@@ -10,8 +10,9 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Interpreter {
-    global: Rc<RefCell<Environment>>,
-    environment: Rc<RefCell<Environment>>,
+    // global: Rc<RefCell<Environment>>,
+    // environment: Rc<RefCell<Environment>>,
+    pub envs: EnvironmentList,
     statements: Rc<Vec<Stmt>>,
     scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
     pub return_val: EnvironmentValue,
@@ -24,8 +25,9 @@ impl Interpreter {
     ) -> Self {
         let env = Rc::new(RefCell::new(Environment::new(None)));
         Interpreter {
-            global: env.clone(),
-            environment: env.clone(),
+            // global: env.clone(),
+            // environment: env.clone(),
+            envs: EnvironmentList::new(),
             statements,
             scope_record,
             return_val: EnvironmentValue::None,
@@ -72,11 +74,11 @@ impl Interpreter {
     }
 
     fn visit_function_stmt(&mut self, stmt: &Rc<FunctionStatement>) -> Result<(), Error> {
-        let lox_function = LoxFunction::new(stmt.clone(), self.environment.clone(), false);
-        self.environment.borrow_mut().define(
+        let lox_function = LoxFunction::new(stmt.clone(), self.envs.env_pos, false);
+        self.envs.define(
             ScopeAnalyst::get_scope_key_name(&stmt.name.lexeme),
             EnvironmentValue::LoxFunction(Rc::new(RefCell::new(lox_function))),
-        );
+        )?;
         Ok(())
     }
 
@@ -123,8 +125,7 @@ impl Interpreter {
     }
 
     fn visit_for_stmt(&mut self, stmt: &ForStatement) -> Result<(), Error> {
-        let previous = self.environment.clone();
-        self.environment = Rc::new(RefCell::new(Environment::new(Some(previous))));
+        self.envs.next(None);
 
         if let Some(initializer) = &stmt.initializer {
             self.evaluate_statement_item(initializer)?;
@@ -140,8 +141,16 @@ impl Interpreter {
                     flag = self.evaluate_expression_item(condition)?.is_truthy();
                 }
             }
-        }
 
+            // for _ in 0..100000000 {
+            //     if let Some(updator) = &stmt.updator {
+            //         self.evaluate_statement_item(&stmt.body)?;
+            //         self.evaluate_expression_item(updator)?;
+            //         self.evaluate_expression_item(condition)?.is_truthy();
+            //     }
+            // }
+        }
+        self.envs.back();
         Ok(())
     }
 
@@ -150,34 +159,37 @@ impl Interpreter {
         if let Some(initializer) = &stmt.initializer {
             value = self.evaluate_expression_item(initializer)?;
         }
-        self.environment
-            .borrow_mut()
-            .define(stmt.name.lexeme.as_ptr(), value);
+        self.envs.define(stmt.name.lexeme.as_ptr(), value)?;
         Ok(())
     }
 
     pub fn visit_block_stmt(
         &mut self,
         stmt: &BlockStatement,
-        environment: Option<Rc<RefCell<Environment>>>,
+        environment: Option<usize>,
     ) -> Result<(), Error> {
-        let previous = self.environment.clone();
+        let previous_env_pos = self.envs.env_pos;
 
-        if let Some(new_env) = environment {
-            self.environment = new_env;
+        if let Some(env_pos) = environment {
+            self.envs.go_to_env_by_pos(env_pos);
         } else {
-            self.environment = Rc::new(RefCell::new(Environment::new(Some(previous.clone()))))
+            self.envs.next(None);
         }
 
         let stmts = &stmt.statements;
 
         for statement in stmts.iter() {
             if let Err(err) = self.evaluate_statement_item(statement) {
-                self.environment = previous;
+                self.envs.back();
                 return Err(err);
             }
         }
-        self.environment = previous;
+
+        if environment.is_none() {
+            self.envs.back();
+        } else {
+            self.envs.go_to_env_by_pos(previous_env_pos);
+        }
         Ok(())
     }
 
@@ -187,11 +199,10 @@ impl Interpreter {
     }
 
     fn visit_class_stmt(&mut self, stmt: &Rc<ClassStatement>) -> Result<(), Error> {
-        self.environment
-            .borrow_mut()
-            .define(stmt.name.lexeme.as_ptr(), EnvironmentValue::None);
+        self.envs
+            .define(stmt.name.lexeme.as_ptr(), EnvironmentValue::None)?;
 
-        let mut previous: Option<Rc<RefCell<Environment>>> = None;
+        let mut has_previous = false;
         let mut super_class = None;
 
         if let Some(superclass) = &stmt.superclass {
@@ -199,14 +210,12 @@ impl Interpreter {
 
             match superclass_value {
                 EnvironmentValue::LoxClass(superclass_value_lox_class) => {
-                    previous = Some(self.environment.clone());
-                    self.environment = Rc::new(RefCell::new(Environment::new(Some(
-                        self.environment.clone(),
-                    ))));
-                    self.environment.borrow_mut().define(
+                    has_previous = true;
+                    self.envs.next(None);
+                    self.envs.define(
                         SUPER_STRING.as_ptr(),
                         EnvironmentValue::LoxClass(superclass_value_lox_class.clone()),
-                    );
+                    )?;
                     super_class = Some(superclass_value_lox_class.clone());
                 }
                 _ => {
@@ -226,7 +235,7 @@ impl Interpreter {
                 let is_init = *f_stmt.name.lexeme == INIT_STRING;
                 let method = Rc::new(RefCell::new(LoxFunction::new(
                     f_stmt.clone(),
-                    self.environment.clone(),
+                    self.envs.env_pos,
                     is_init,
                 )));
 
@@ -244,14 +253,11 @@ impl Interpreter {
             methods,
         ))));
 
-        if previous.is_some() {
-            self.environment = previous.unwrap();
+        if has_previous {
+            self.envs.back();
         }
 
-        self.environment
-            .borrow_mut()
-            .assign(&stmt.name, lox_class)?;
-
+        self.envs.assign(&stmt.name, lox_class)?;
         Ok(())
     }
 
@@ -391,7 +397,6 @@ impl Interpreter {
 
     fn visit_literal_expr(&mut self, expr: &LiteralExpression) -> Result<EnvironmentValue, Error> {
         // let ref value = expr.value;
-
         if let Some(val) = &expr.value {
             match val {
                 ValueType::Bool(bool_val) => Ok(EnvironmentValue::Bool(*bool_val)),
@@ -434,14 +439,12 @@ impl Interpreter {
         let add = get_rc_ref_address(expr.clone());
 
         if !self.scope_record.borrow().contains_key(&add) {
-            return self.global.borrow().get(&expr.name);
+            return Ok(self.envs.global_get(&expr.name)?.clone());
         }
 
         let borrow_env = self.scope_record.borrow();
         let distance = borrow_env.get(&add).unwrap();
-        let ref environment = self.environment;
-        let environment = Environment::get_env_by_distance(environment.clone(), *distance);
-        let value = environment.borrow().get(&expr.name);
+        let value = Ok(self.envs.get_by_distance(&expr.name, *distance)?.clone());
         value
     }
 
@@ -453,16 +456,14 @@ impl Interpreter {
         let add = get_rc_ref_address(expr.clone());
 
         if !self.scope_record.borrow().contains_key(&add) {
-            self.global.borrow_mut().assign(&expr.name, value.clone())?;
+            self.envs.global_assign(&expr.name, value.clone())?;
             return Ok(value);
         }
 
         let borrow_env = self.scope_record.borrow();
         let distance = borrow_env.get(&add).unwrap();
-        let ref environment = self.environment;
-        let environment = Environment::get_env_by_distance(environment.clone(), *distance);
-
-        environment.borrow_mut().assign(&expr.name, value.clone())?;
+        self.envs
+            .assign_by_distance(&expr.name, *distance, value.clone())?;
         Ok(value)
     }
 
@@ -523,7 +524,7 @@ impl Interpreter {
             EnvironmentValue::LoxInstance(lox_instance) => {
                 let lox_instance = lox_instance.clone();
                 let lox_instance = lox_instance.borrow_mut(); //TODO:实现的有没有问题？
-                return lox_instance.get(&expr.name);
+                return lox_instance.get(&expr.name, self);
             }
             _ => Err(Error {
                 line: expr.name.line,
@@ -555,31 +556,34 @@ impl Interpreter {
         let add = get_rc_ref_address(expr.clone());
         let distance = self.scope_record.borrow();
         let distance = distance.get(&add).unwrap();
-        let environment = Environment::get_env_by_distance(self.environment.clone(), *distance);
-        let value = environment.borrow().get(&expr.keyword);
+        let value = Ok(self.envs.get_by_distance(&expr.keyword, *distance)?.clone());
         value
     }
 
     fn visit_super_expr(&mut self, expr: &Rc<SuperExpression>) -> Result<EnvironmentValue, Error> {
         let add = get_rc_ref_address(expr.clone());
-        let distance = self.scope_record.borrow();
-        let distance = distance.get(&add).unwrap();
-        let environment = Environment::get_env_by_distance(self.environment.clone(), *distance);
-
-        let superclass = environment.borrow().get(&expr.keyword)?;
+        let superclass;
+        let distance;
+        {
+            let borrow_scope_record = self.scope_record.borrow();
+            distance = borrow_scope_record.get(&add).unwrap().clone();
+            superclass = self.envs.get_by_distance(&expr.keyword, distance)?.clone();
+        }
 
         match superclass {
             EnvironmentValue::LoxClass(superclass) => {
-                let obj = Environment::get_env_by_distance(self.environment.clone(), *distance - 1);
-                let obj = obj.borrow();
-                let obj = obj.values.get(&THIS_STRING.as_ptr()).unwrap();
+                let obj = self
+                    .envs
+                    .get_by_distance_default(&THIS_STRING.as_ptr(), distance)
+                    .unwrap()
+                    .clone();
 
                 let method = superclass
                     .borrow()
                     .find_method(&expr.method.lexeme.as_ptr());
 
                 if let Some(method) = method {
-                    return Ok(method.clone().borrow_mut().bind(obj.clone()));
+                    return Ok(method.clone().borrow_mut().bind(obj.clone(), self));
                 }
             }
             _ => {}

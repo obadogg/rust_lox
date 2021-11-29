@@ -1,4 +1,5 @@
 use crate::environment::environment_value::EnvironmentValue;
+use crate::interpreter::interpreter::Interpreter;
 use crate::scanner::{scanner::*, tokens::*};
 
 use super::lox_class::*;
@@ -18,7 +19,11 @@ impl LoxInstance {
         }
     }
 
-    pub fn get(&self, name: &Token) -> Result<EnvironmentValue, Error> {
+    pub fn get(
+        &self,
+        name: &Token,
+        interpreter: &mut Interpreter,
+    ) -> Result<EnvironmentValue, Error> {
         let key_ptr = name.lexeme.as_ptr();
 
         if let Some(value) = self.fields.get(&key_ptr) {
@@ -28,11 +33,10 @@ impl LoxInstance {
         if let Some(method) = self.belong_class.borrow().find_method(&key_ptr) {
             let borrow_function = method.clone();
             let mut borrow_function = borrow_function.borrow_mut();
-            return Ok(
-                borrow_function.bind(EnvironmentValue::LoxInstance(Rc::new(RefCell::new(
-                    self.clone(),
-                )))),
-            );
+            return Ok(borrow_function.bind(
+                EnvironmentValue::LoxInstance(Rc::new(RefCell::new(self.clone()))),
+                interpreter,
+            ));
         }
 
         Err(Error {

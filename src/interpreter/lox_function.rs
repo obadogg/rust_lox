@@ -8,16 +8,12 @@ use std::{cell::RefCell, rc::Rc};
 #[derive(Debug, Clone)]
 pub struct LoxFunction {
     declaration: Rc<FunctionStatement>,
-    closure: Rc<RefCell<Environment>>,
+    closure: usize,
     is_initializer: bool,
 }
 
 impl LoxFunction {
-    pub fn new(
-        declaration: Rc<FunctionStatement>,
-        closure: Rc<RefCell<Environment>>,
-        is_initializer: bool,
-    ) -> Self {
+    pub fn new(declaration: Rc<FunctionStatement>, closure: usize, is_initializer: bool) -> Self {
         LoxFunction {
             declaration,
             closure,
@@ -34,36 +30,50 @@ impl LoxFunction {
         interpreter: &mut Interpreter,
         args: &Vec<Result<EnvironmentValue, Error>>,
     ) -> Result<EnvironmentValue, Error> {
-        let environment = Rc::new(RefCell::new(Environment::new(Some(self.closure.clone()))));
-
         let iter = &self.declaration.clone().params;
+
+        let env_pos = interpreter.envs.env_pos;
+        interpreter.envs.next(Some(self.closure));
         for (pos, decs) in iter.iter().enumerate() {
             let arg = args[pos].clone().unwrap();
             let name_ptr = ScopeAnalyst::get_scope_key_name(&decs.lexeme);
-            environment.borrow_mut().define(name_ptr, arg)
+            interpreter.envs.define(name_ptr, arg)?;
         }
 
-        interpreter.visit_block_stmt(&self.declaration.body, Some(environment.clone()))?;
+        let block_previous_env_pos = interpreter.envs.env_pos;
+
+        // interpreter.envs.back_without_clear();
+        interpreter.envs.env_pos = env_pos;
+
+        interpreter.visit_block_stmt(&self.declaration.body, Some(block_previous_env_pos))?;
 
         let return_val = interpreter.return_val.clone();
 
         if self.is_initializer {
-            let borrow = self.closure.borrow();
-            let value = borrow.values.get(&THIS_STRING.as_ptr()).unwrap();
-
+            let value = interpreter
+                .envs
+                .get_with_pos(&THIS_STRING.as_ptr(), self.closure)?
+                .clone();
             return Ok(value.clone());
         }
         Ok(return_val)
     }
 
-    pub fn bind(&mut self, instance: EnvironmentValue) -> EnvironmentValue {
-        let environment = Rc::new(RefCell::new(Environment::new(Some(self.closure.clone()))));
-        environment
-            .borrow_mut()
-            .define(THIS_STRING.as_ptr(), instance);
+    pub fn bind(
+        &mut self,
+        instance: EnvironmentValue,
+        interpreter: &mut Interpreter,
+    ) -> EnvironmentValue {
+        let from_env_pos = interpreter.envs.next(Some(self.closure));
+        interpreter.envs.define(THIS_STRING.as_ptr(), instance);
 
-        let lox_function =
-            LoxFunction::new(self.declaration.clone(), environment, self.is_initializer);
+        let lox_function = LoxFunction::new(
+            self.declaration.clone(),
+            interpreter.envs.env_pos,
+            self.is_initializer,
+        );
+        interpreter.envs.go_to_env_by_pos(from_env_pos);
+
         return EnvironmentValue::LoxFunction(Rc::new(RefCell::new(lox_function)));
     }
 }
