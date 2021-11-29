@@ -13,27 +13,14 @@ struct Abc {
 }
 
 fn main() {
+    let now = std::time::Instant::now();
     let str = String::from(
         "
-        class Person {
-            init(name, birth) {
-              this.name = name;
-              this.birth = birth;
-            }
-
-            introduceMySelf() {
-              print \"my name is \" + this.name + \":fuck\";
-              print \"thanks for coming\";
-              return this.aaa();
-            }
-
-            aaa(){
-              return 222;
-            }
-          }
-
-          var me = Person(\"aadonkeyz\", 1995);
-          print me.introduceMySelf();
+        var sum = 1;
+        for( var i = 0; i < 10000000; i = i + 1){
+          sum = sum + 1;
+        }
+        print sum;
     ",
     );
     let mut s = scanner::scanner::Scanner::new(&str);
@@ -51,5 +38,5 @@ fn main() {
         interpreter::interpreter::Interpreter::new(statements.clone(), s_a.scope_record.clone());
     inter.interpret();
 
-    // println!("token length: {}", s.tokens.len());
+    println!("耗时:{:?}", now.elapsed());
 }
