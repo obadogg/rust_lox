@@ -1,19 +1,19 @@
 use super::super::scanner::{scanner::*, tokens::*};
 use super::environment_value::*;
 use crate::semantic::scope_analyst::*;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub struct Environment {
-    pub values: HashMap<*const u8, EnvironmentValue>,
+    pub values: BTreeMap<*const u8, EnvironmentValue>,
     pub enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
 impl Environment {
     pub fn new(enclosing: Option<Rc<RefCell<Environment>>>) -> Self {
         Environment {
-            values: HashMap::new(),
+            values: BTreeMap::new(),
             enclosing,
         }
     }
