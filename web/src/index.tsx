@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Menu } from 'antd';
 import Playground from './page/Playground';
-import rust_fn_init from '../../rs-package/lox_wasm/pkg/lox_wasm';
+import rust_fn_init,{ interpret_lox } from '../../rs-package/lox_wasm/pkg/lox_wasm';
 
 import 'antd/dist/antd.css';
 import './index.css';
@@ -42,7 +42,7 @@ function App() {
 (async () => {
   let rust_module = await rust_fn_init();
 
-  console.log(rust_module.interpret_lox(`
+  console.log(interpret_lox(`
     var sum = 1;
     for(var i = 0;i < 10000000; i = i + 1){
         sum = sum + 1;

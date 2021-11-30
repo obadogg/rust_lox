@@ -21,5 +21,7 @@ fn log_fn(s: String) {
 
 #[wasm_bindgen]
 pub fn interpret_lox(code: String) {
-    lox_compiler::interpret(&code, Some(log_fn))
+    let now = js_sys::Date::now();
+    lox_compiler::interpret(&code, Some(log_fn));
+    web_sys::console::log_1(&format!("耗时:{}s", (js_sys::Date::now() - now) / 1000_f64).into());
 }
