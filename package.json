@@ -4,11 +4,9 @@
   "description": "rust interpreter for lox language",
   "main": "src/index.ts",
   "scripts": {
-    "start": "PORT=8000 react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test --detectOpenHandles",
-    "eject": "react-scripts eject",
-    "predeploy": "npm run build",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview",
     "deploy": "gh-pages -d build",
     "run-lox": "cargo run --release",
     "build-wasm": "cd lox_wasm && wasm-pack build "
@@ -55,6 +53,9 @@
     "typescript": "^4.4.3"
   },
   "devDependencies": {
-    "gh-pages": "^3.2.3"
+    "gh-pages": "^3.2.3",
+    "@vitejs/plugin-react": "^1.0.0",
+    "typescript": "^4.3.2",
+    "vite": "^2.6.4"
   }
 }
