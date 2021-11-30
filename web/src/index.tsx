@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { Menu } from 'antd';
-import Playground from './web/Playground';
-import * as rust_fn from '../rs-package/lox_wasm/pkg/lox_wasm';
+import Playground from './page/Playground';
+import rust_fn_init from '../../rs-package/lox_wasm/pkg/lox_wasm';
 
+import 'antd/dist/antd.css';
 import './index.css';
-
-console.log(rust_fn, 'asdasd');
 
 const PLAYGROUND = 'Playground';
 const GRAMMER = 'Grammer';
@@ -39,10 +38,24 @@ function App() {
     </div>
   );
 }
+ 
+(async () => {
+  let rust_module = await rust_fn_init();
 
-ReactDOM.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-  document.getElementById('root'),
-);
+  console.log(rust_module.interpret_lox(`
+    var sum = 1;
+    for(var i = 0;i < 10000000; i = i + 1){
+        sum = sum + 1;
+    }
+    print sum;
+  `),'asdasd')
+
+  ReactDOM.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+    document.getElementById('root'),
+  );
+})()
+
+

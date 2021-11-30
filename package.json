@@ -9,7 +9,7 @@
     "serve": "vite preview",
     "deploy": "gh-pages -d build",
     "run-lox": "cargo run --release",
-    "build-wasm": "cd lox_wasm && wasm-pack build "
+    "build-wasm": "cd rs-package/lox_wasm && wasm-pack build --target web"
   },
   "repository": {
     "type": "git",

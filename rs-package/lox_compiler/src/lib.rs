@@ -20,14 +20,17 @@ pub fn parse(code: &String) -> Rc<Vec<parser::statement::Stmt>> {
     Rc::new(p.statements)
 }
 
-pub fn interpret(code: &String) {
+pub fn interpret(code: &String, log_fn: Option<fn(String) -> ()>) {
     let statements = parse(code);
 
     let mut s_a = semantic::scope_analyst::ScopeAnalyst::new(statements.clone());
     s_a.analysis();
 
-    let mut inter =
-        interpreter::interpreter::Interpreter::new(statements.clone(), s_a.scope_record.clone());
+    let mut inter = interpreter::interpreter::Interpreter::new(
+        statements.clone(),
+        s_a.scope_record.clone(),
+        log_fn,
+    );
 
     inter.interpret();
 }

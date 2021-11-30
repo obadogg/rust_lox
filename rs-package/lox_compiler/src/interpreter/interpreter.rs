@@ -14,18 +14,21 @@ pub struct Interpreter {
     statements: Rc<Vec<Stmt>>,
     scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
     pub return_val: EnvironmentValue,
+    log_fn: Option<fn(String) -> ()>,
 }
 
 impl Interpreter {
     pub fn new(
         statements: Rc<Vec<Stmt>>,
         scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
+        log_fn: Option<fn(String) -> ()>,
     ) -> Self {
         Interpreter {
             envs: EnvironmentList::new(),
             statements,
             scope_record,
             return_val: EnvironmentValue::None,
+            log_fn,
         }
     }
 
@@ -98,9 +101,12 @@ impl Interpreter {
 
     fn visit_print_stmt(&mut self, stmt: &PrintStatement) -> Result<(), Error> {
         let val = self.evaluate_expression_item(&stmt.expression)?;
-
         if let Ok(message) = val.as_print() {
-            println!("{}", message);
+            if self.log_fn.is_none() {
+                println!("{}", message);
+            } else {
+                self.log_fn.unwrap()(message);
+            }
             Ok(())
         } else {
             Err(Error {
@@ -136,14 +142,6 @@ impl Interpreter {
                     flag = self.evaluate_expression_item(condition)?.is_truthy();
                 }
             }
-
-            // for _ in 0..100000000 {
-            //     if let Some(updator) = &stmt.updator {
-            //         self.evaluate_statement_item(&stmt.body)?;
-            //         self.evaluate_expression_item(updator)?;
-            //         self.evaluate_expression_item(condition)?.is_truthy();
-            //     }
-            // }
         }
         self.envs.back();
         Ok(())
