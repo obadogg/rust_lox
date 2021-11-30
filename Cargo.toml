@@ -1,9 +1,9 @@
 [workspace]
 
 members = [
-    "lox",
-    "lox_wasm",
-    "lox_compiler",
+    "rs-package/lox",
+    "rs-package/lox_wasm",
+    "rs-package/lox_compiler",
 ]
 
 # For flamegraph
