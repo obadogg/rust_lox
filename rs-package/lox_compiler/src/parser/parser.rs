@@ -119,7 +119,7 @@ impl Parser {
         let name = name.clone();
         self.consume(
             TokensType::LeftParen,
-            format!("Expect \"(\" after {:?} name", fun_type),
+            format!(r#"Expect "(" after {:?} name"#, fun_type),
         )?;
 
         let mut params = Vec::new();
@@ -137,11 +137,11 @@ impl Parser {
         }
         self.consume(
             TokensType::RightParen,
-            String::from("Expect \")\" after parameters"),
+            String::from(r#"Expect ")" after parameters"#),
         )?;
         self.consume(
             TokensType::LeftBrace,
-            format!("Expect \"{{\" before {:?} body", fun_type),
+            format!(r#"Expect "{{" before {:?} body"#, fun_type),
         )?;
 
         let body = self.block()?;
@@ -167,7 +167,7 @@ impl Parser {
         }
         self.consume(
             TokensType::LeftBrace,
-            String::from("Expect \"{\" before class body"),
+            String::from(r#"Expect "{" before class body"#),
         )?;
 
         let mut methods = Vec::new();
@@ -177,7 +177,7 @@ impl Parser {
 
         self.consume(
             TokensType::RightBrace,
-            String::from("Expect \"}\" after class body"),
+            String::from(r#"Expect "}" after class body"#),
         )?;
 
         Ok(ClassStatement {
@@ -197,7 +197,7 @@ impl Parser {
         }
         self.consume(
             TokensType::Semicolon,
-            String::from("Expect \";\" after variable declaration"),
+            String::from(r#"Expect ";" after variable declaration"#),
         )?;
         Ok(VarStatement { name, initializer })
     }
@@ -212,7 +212,7 @@ impl Parser {
 
         self.consume(
             TokensType::RightBrace,
-            String::from("Expect \"}\" after block"),
+            String::from(r#"Expect "}" after block"#),
         )?;
         Ok(statements)
     }
@@ -250,12 +250,12 @@ impl Parser {
     fn if_stmt(&mut self) -> Result<Stmt, ()> {
         self.consume(
             TokensType::LeftParen,
-            String::from("Expect \"(\" after \"if\""),
+            String::from(r#"Expect "(" after "if""#),
         )?;
         let condition = self.expression()?;
         self.consume(
             TokensType::RightParen,
-            String::from("Expect \")\" after if condition"),
+            String::from(r#"Expect ")" after if condition"#),
         )?;
 
         let then_branch = self.statement()?;
@@ -276,7 +276,7 @@ impl Parser {
         let expression = self.expression()?;
         self.consume(
             TokensType::Semicolon,
-            String::from("Expect \";\" after value"),
+            String::from(r#"Expect ";" after value"#),
         )?;
         Ok(Stmt::Print(PrintStatement {
             keyword,
@@ -295,7 +295,7 @@ impl Parser {
 
         self.consume(
             TokensType::Semicolon,
-            String::from("Expect \";\" after return value"),
+            String::from(r#"Expect ";" after return value"#),
         )?;
 
         Ok(Stmt::Return(ReturnStatement { keyword, value }))
@@ -304,12 +304,12 @@ impl Parser {
     fn while_stmt(&mut self) -> Result<Stmt, ()> {
         self.consume(
             TokensType::LeftParen,
-            String::from("Expect \"(\" after \"while\""),
+            String::from(r#"Expect "(" after "while""#),
         )?;
         let condition = self.expression()?;
         self.consume(
             TokensType::RightParen,
-            String::from("Expect \")\" after condition"),
+            String::from(r#"Expect ")" after condition"#),
         )?;
         let body = self.statement()?;
         Ok(Stmt::While(Rc::new(WhileStatement { condition, body })))
@@ -318,14 +318,14 @@ impl Parser {
     fn for_stmt(&mut self) -> Result<Stmt, ()> {
         self.consume(
             TokensType::LeftParen,
-            String::from("Expect \"(\" after \"for\""),
+            String::from(r#"Expect "(" after "for""#),
         )?;
 
         if self.check(TokensType::RightParen) {
             self.errors.push(Error {
                 line: self.peek().line,
                 column: self.peek().column,
-                message: String::from("There is nothing exist in the parenthese of \"for\""),
+                message: String::from(r#"There is nothing exist in the parenthese of "for""#),
             });
             return Err(());
         }
@@ -344,7 +344,7 @@ impl Parser {
             condition = Some(self.expression()?);
             self.consume(
                 TokensType::Semicolon,
-                String::from("Expect \";\" after the condition of \"for\""),
+                String::from(r#"Expect ";" after the condition of "for""#),
             )?;
         }
 
@@ -352,7 +352,7 @@ impl Parser {
             updator = Some(self.expression()?);
             self.consume(
                 TokensType::RightParen,
-                String::from("Expect \")\" after the parenthese of \"for\""),
+                String::from(r#"Expect ")" after the parenthese of "for""#),
             )?;
         }
         let body = self.statement()?;
@@ -369,7 +369,7 @@ impl Parser {
         let expression = self.expression()?;
         self.consume(
             TokensType::Semicolon,
-            String::from("Expect \";\" after expression"),
+            String::from(r#"Expect ";" after expression"#),
         )?;
         Ok(Stmt::Expression(ExpressionStatement { expression }))
     }
@@ -448,10 +448,7 @@ impl Parser {
 
         if self.match_token(TokensType::Super) {
             let keyword = clone_previous_token!(self);
-            self.consume(
-                TokensType::Dot,
-                String::from("Expect \".\" after \"super\""),
-            )?;
+            self.consume(TokensType::Dot, String::from(r#"Expect "." after "super""#))?;
             self.consume(
                 TokensType::Identifier,
                 String::from("Expect superclass method name"),
@@ -473,7 +470,7 @@ impl Parser {
             })));
             self.consume(
                 TokensType::RightParen,
-                String::from("Expect \")\" after expression"),
+                String::from(r#"Expect ")" after expression"#),
             )?;
             self.increase_expr_count();
             return expression;
@@ -482,7 +479,7 @@ impl Parser {
         self.errors.push(Error {
             line: self.peek().line,
             column: self.peek().column,
-            message: format!("Unexpected token \"{:?}\"", self.peek().lexeme),
+            message: format!(r#"Unexpected token "{:?}""#, self.peek().lexeme),
         });
 
         Err(())
@@ -632,7 +629,7 @@ impl Parser {
                 TokensType::Dot => {
                     let name = self.consume(
                         TokensType::Identifier,
-                        String::from("Expect property name after \".\""),
+                        String::from(r#"Expect property name after ".""#),
                     )?;
                     let name = name.clone();
 
@@ -664,7 +661,7 @@ impl Parser {
 
         let end_parenthese = self.consume(
             TokensType::RightParen,
-            String::from("Expect \")\" after arguments"),
+            String::from(r#"Expect ")" after arguments"#),
         )?;
         let end_parenthese = end_parenthese.clone();
 

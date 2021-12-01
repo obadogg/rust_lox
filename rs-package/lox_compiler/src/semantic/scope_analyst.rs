@@ -207,7 +207,7 @@ impl ScopeAnalyst {
                             line: stmt.name.line,
                             column: stmt.name.column,
                             message: format!(
-                                "A class can't inherit from itself(\"{:?}\"",
+                                r#"A class can't inherit from itself("{:?}""#,
                                 stmt.name.lexeme
                             ),
                         })
@@ -266,7 +266,7 @@ impl ScopeAnalyst {
                         line: expr.name.line,
                         column: expr.name.column,
                         message: format!(
-                            "Can't read local variable in its own initializer(\"{}\")",
+                            r#"Can't read local variable in its own initializer("{}")"#,
                             expr.name.lexeme
                         ),
                     });
@@ -304,7 +304,7 @@ impl ScopeAnalyst {
             ClassType::None => self.errors.push(Error {
                 line: expr.keyword.line,
                 column: expr.keyword.column,
-                message: String::from("Can\'t use \"this\" outside of a class"),
+                message: String::from(r#"Can't use "this" outside of a class"#),
             }),
             _ => {}
         }
@@ -318,12 +318,12 @@ impl ScopeAnalyst {
             ClassType::None => self.errors.push(Error {
                 line: expr.keyword.line,
                 column: expr.keyword.column,
-                message: String::from("Can\'t use \"super\" outside of a class"),
+                message: String::from(r#"Can't use "super" outside of a class"#),
             }),
             ClassType::Class => self.errors.push(Error {
                 line: expr.keyword.line,
                 column: expr.keyword.column,
-                message: String::from("Can\'t use \"super\" in a class with no superclass"),
+                message: String::from(r#"Can't use "super" in a class with no superclass"#),
             }),
             _ => {}
         }

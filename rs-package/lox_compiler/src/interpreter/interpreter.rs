@@ -294,7 +294,7 @@ impl Interpreter {
                     line: expr.operator.line,
                     column: expr.operator.column,
                     message: format!(
-                        "\"!=\" and \"==\" operands only support number/string/boolean {}",
+                        r#""!=" and "==" operands only support number/string/boolean {}"#,
                         &expr.operator.lexeme
                     ),
                 })
@@ -308,7 +308,7 @@ impl Interpreter {
                     line: expr.operator.line,
                     column: expr.operator.column,
                     message: format!(
-                        "\"!=\" and \"==\" operands only support number/string/boolean {}",
+                        r#""!=" and "==" operands only support number/string/boolean {}"#,
                         &expr.operator.lexeme
                     ),
                 })
@@ -475,7 +475,7 @@ impl Interpreter {
                         line: expr.end_parenthese.line,
                         column: expr.end_parenthese.column,
                         message: format!(
-                            "Expect {} arguments but got {}, at \")\"",
+                            r#"Expect {} arguments but got {}, at ")""#,
                             lox_class.borrow().arity().to_string(),
                             args.len().to_string()
                         ),
@@ -489,7 +489,7 @@ impl Interpreter {
                         line: expr.end_parenthese.line,
                         column: expr.end_parenthese.column,
                         message: format!(
-                            "Expect {} arguments but got {}, at \")\"",
+                            r#"Expect {} arguments but got {}, at ")""#,
                             lox_function.borrow().arity().to_string(),
                             args.len().to_string()
                         ),
