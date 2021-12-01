@@ -7,3 +7,5 @@ default-run = "lox"
 [dependencies]
 lox_compiler = { path = "../lox_compiler" }
 
+[profile.release]
+lto = true

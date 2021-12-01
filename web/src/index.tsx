@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, createContext } from 'react';
 import ReactDOM from 'react-dom';
 import { Menu } from 'antd';
 import Playground from './page/Playground';
@@ -11,6 +11,12 @@ import './index.css';
 
 const PLAYGROUND = 'Playground';
 const GRAMMER = 'Grammer';
+
+export const WasmFunContext = createContext<{
+  interpret_lox: (code: string) => void;
+}>({
+  interpret_lox: (code: string) => {},
+});
 
 function App() {
   const [active, setActive] = useState<string>(PLAYGROUND);
@@ -42,22 +48,17 @@ function App() {
 }
 
 (async () => {
-  let rust_module = await rust_fn_init();
-
-  console.log(
-    interpret_lox(`
-    var sum = 1;
-    for(var i = 0;i < 10000000; i = i + 1){
-        sum = sum + 1;
-    }
-    print sum;
-  `),
-    'asdasd',
-  );
+  let module = await rust_fn_init();
 
   ReactDOM.render(
     <React.StrictMode>
-      <App />
+      <WasmFunContext.Provider
+        value={{
+          interpret_lox,
+        }}
+      >
+        <App />
+      </WasmFunContext.Provider>
     </React.StrictMode>,
     document.getElementById('root'),
   );

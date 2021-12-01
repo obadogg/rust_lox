@@ -7,8 +7,8 @@
     "install": "npm i && cd rs-package/lox_napi && npm i",
     "dev": "npm run build-wasm && vite",
     "build": "npm run build-wasm && tsc && vite build",
-    "build-wasm": "cd rs-package/lox_wasm && wasm-pack build --target web",
     "serve": "vite preview",
+    "build-wasm": "cd rs-package/lox_wasm && wasm-pack build --target web",
     "deploy": "gh-pages -d build",
     "run-lox": "cargo run --release",
     "run-node": "cd rs-package/lox_napi && npm run build && cd ../.. && node node/index.js"
