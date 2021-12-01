@@ -4,6 +4,7 @@ members = [
     "rs-package/lox",
     "rs-package/lox_wasm",
     "rs-package/lox_compiler",
+    "rs-package/lox_napi"
 ]
 
 # For flamegraph
