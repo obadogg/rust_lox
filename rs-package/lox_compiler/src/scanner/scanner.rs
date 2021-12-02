@@ -53,6 +53,23 @@ impl<'a> Scanner<'a> {
             }
         }
         self.add_token(TokensType::Eof, String::from(""), None);
+
+        if self.errors.len() != 0 {
+            let errors = self
+                .errors
+                .iter()
+                .map(|err| {
+                    format!(
+                        "{} in line {} column {} \n",
+                        err.message, err.line, err.column
+                    )
+                })
+                .collect::<String>();
+            panic!(
+                "\n\n******\nOops! scan tokens errors:\n{}******\n\n",
+                errors
+            );
+        }
     }
 
     fn scan_tokens(&mut self) -> bool {
@@ -146,7 +163,12 @@ impl<'a> Scanner<'a> {
                     '"' | '\'' => self.handle_string(code),
                     '0'..='9' => self.handle_digit(code),
                     'a'..='z' | 'A'..='Z' | '_' => self.handle_alpha(code),
-                    _ => (),
+                    _ => self.errors.push(Error {
+                        line: self.line,
+                        //TODO:
+                        column: self.start,
+                        message: String::from("Unexpected character"),
+                    }),
                 }
                 true
             }

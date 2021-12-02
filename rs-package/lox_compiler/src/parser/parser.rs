@@ -91,7 +91,17 @@ impl Parser {
                 }
                 Err(_) => {
                     self.synchronize();
-                    panic!("oops!parser panic: {:#?}", self.errors);
+                    let errors = self
+                        .errors
+                        .iter()
+                        .map(|err| {
+                            format!(
+                                "{} in line {} column {} \n",
+                                err.message, err.line, err.column
+                            )
+                        })
+                        .collect::<String>();
+                    panic!("\n\n******\nOops! parse errors:\n{}******\n\n", errors);
                 }
             }
         }

@@ -4,14 +4,15 @@
   "description": "rust interpreter for lox language",
   "main": "src/index.ts",
   "scripts": {
-    "install": "npm i && cd rs-package/lox_napi && npm i",
-    "dev": "npm run build-wasm && vite",
+    "install-all": "npm i && cd rs-package/lox_napi && npm i",
+    "sync-code":"node scripts/sync_code.js",
+    "dev": "npm run sync-code && npm run build-wasm && vite",
     "build": "npm run build-wasm && tsc && vite build",
     "serve": "vite preview",
     "build-wasm": "cd rs-package/lox_wasm && wasm-pack build --target web",
     "deploy": "gh-pages -d build",
     "run-lox": "cargo run --release",
-    "run-node": "cd rs-package/lox_napi && npm run build && cd ../.. && node node/index.js"
+    "run-node": "npm run install-all && cd rs-package/lox_napi && npm run build && cd ../.. && node node/index.js"
   },
   "repository": {
     "type": "git",

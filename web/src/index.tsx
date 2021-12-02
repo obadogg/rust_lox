@@ -20,7 +20,7 @@ export const WasmFunContext = createContext<{
 
 function App() {
   const [active, setActive] = useState<string>(PLAYGROUND);
-
+  
   return (
     <div className="App">
       <Menu
@@ -48,7 +48,7 @@ function App() {
 }
 
 (async () => {
-  let module = await rust_fn_init();
+  await rust_fn_init();
 
   ReactDOM.render(
     <React.StrictMode>

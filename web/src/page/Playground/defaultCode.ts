@@ -1,4 +1,4 @@
-// class Person {
+export default `// class Person {
 //     init(name1, birth1) {
 //         this.name = name1;
 //         this.birth = birth1;
@@ -19,4 +19,4 @@ var sum = 1;
 for(var i = 0;i < 100000; i = i + 1){
     sum = sum + 1;
 }
-print sum;
+print sum;`

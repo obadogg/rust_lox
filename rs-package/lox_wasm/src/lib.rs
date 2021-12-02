@@ -19,8 +19,15 @@ fn log_fn(s: String) {
     log(s.as_str())
 }
 
+pub fn set_panic_hook() {
+    // https://github.com/rustwasm/console_error_panic_hook#readme
+    #[cfg(feature = "console_error_panic_hook")]
+    console_error_panic_hook::set_once();
+}
+
 #[wasm_bindgen]
 pub fn interpret_lox(code: String) {
+    set_panic_hook();
     let now = js_sys::Date::now();
     lox_compiler::interpret(&code, Some(log_fn));
     web_sys::console::log_1(&format!("耗时:{}s", (js_sys::Date::now() - now) / 1000_f64).into());

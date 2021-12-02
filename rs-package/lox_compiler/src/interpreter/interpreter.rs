@@ -34,8 +34,13 @@ impl Interpreter {
 
     pub fn interpret(&mut self) {
         for stmt in self.statements.clone().iter() {
-            self.evaluate_statement_item(stmt)
-                .expect("oops! program panic:");
+            if let Err(err) = self.evaluate_statement_item(stmt) {
+                let error = format!(
+                    "{} in line {} column {} \n",
+                    err.message, err.line, err.column
+                );
+                panic!("\n\n******\nOops! interpret errors:\n{}******\n\n", error);
+            }
         }
     }
 
