@@ -94,6 +94,7 @@ macro_rules! hash_map {
     };
 }
 
+#[cfg(all(feature = "lox", not(feature = "mandarin")))]
 pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
     hash_map_negative! {
         TokensType::And => "and",
@@ -112,5 +113,27 @@ pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
         TokensType::True => "true",
         TokensType::Var => "var",
         TokensType::While => "while"
+    }
+}
+
+#[cfg(feature = "mandarin")]
+pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
+    hash_map_negative! {
+        TokensType::And => "与上",
+        TokensType::Class => "类",
+        TokensType::Else => "否则",
+        TokensType::False => "假值",
+        TokensType::Fun => "函数",
+        TokensType::For => "循环",
+        TokensType::If => "如果",
+        TokensType::Nil => "空值",
+        TokensType::Or => "或上",
+        TokensType::Print => "打印",
+        TokensType::Return => "返回",
+        TokensType::Super => "父类",
+        TokensType::This => "这个",
+        TokensType::True => "真值",
+        TokensType::Var => "声明",
+        TokensType::While => "每当"
     }
 }

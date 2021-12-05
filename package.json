@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "install-all": "npm i && cd rs-package/lox_napi && npm i",
-    "sync-code":"node scripts/sync_code.js",
+    "sync-code": "node scripts/sync_code.js",
     "dev": "npm run sync-code && npm run build-wasm && vite",
     "build": "npm run build-wasm && tsc && vite build",
     "serve": "vite preview",
@@ -19,7 +19,7 @@
     "url": "git+https://github.com/obadogg/rust_lox.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/obadogg/rust_lox/issues"
   },

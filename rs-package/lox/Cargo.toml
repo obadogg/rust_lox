@@ -5,7 +5,7 @@ edition = "2021"
 default-run = "lox"
 
 [dependencies]
-lox_compiler = { path = "../lox_compiler" }
+lox_compiler = { path = "../lox_compiler" , features = ["lox"] }
 
 [profile.release]
 lto = true

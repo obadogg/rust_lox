@@ -106,20 +106,13 @@ impl Interpreter {
 
     fn visit_print_stmt(&mut self, stmt: &PrintStatement) -> Result<(), Error> {
         let val = self.evaluate_expression_item(&stmt.expression)?;
-        if let Ok(message) = val.as_print() {
-            if self.log_fn.is_none() {
-                println!("{}", message);
-            } else {
-                self.log_fn.unwrap()(message);
-            }
-            Ok(())
+
+        if self.log_fn.is_none() {
+            println!("{}", val);
         } else {
-            Err(Error {
-                line: stmt.keyword.line,
-                column: stmt.keyword.column,
-                message: String::from("Lox only support print String/Boolean/Number"),
-            })
+            self.log_fn.unwrap()(format!("{}", val));
         }
+        Ok(())
     }
 
     fn visit_while_stmt(&mut self, stmt: &WhileStatement) -> Result<(), Error> {
@@ -592,8 +585,4 @@ impl Interpreter {
             message: format!("Undefined property {}", expr.method.lexeme),
         })
     }
-
-    // fn visit_expr_wrap(&mut self,result:Result<EnvironmentValue, Error>) -> Result<EnvironmentValue, Error>{
-
-    // }
 }

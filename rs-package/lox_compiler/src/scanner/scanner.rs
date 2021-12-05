@@ -162,7 +162,9 @@ impl<'a> Scanner<'a> {
                     }
                     '"' | '\'' => self.handle_string(code),
                     '0'..='9' => self.handle_digit(code),
-                    'a'..='z' | 'A'..='Z' | '_' => self.handle_alpha(code),
+                    'a'..='z' | 'A'..='Z' | '\u{4E00}'..='\u{9FA5}' | '_' => {
+                        self.handle_alpha(code)
+                    }
                     _ => self.errors.push(Error {
                         line: self.line,
                         //TODO:
@@ -314,7 +316,7 @@ impl<'a> Scanner<'a> {
 
         while let Some(c) = self.peek() {
             match c {
-                '0'..='9' | 'a'..='z' | 'A'..='Z' | '_' => {
+                '0'..='9' | 'a'..='z' | 'A'..='Z' | '\u{4E00}'..='\u{9FA5}' | '_' => {
                     let s = &*self.advance().unwrap().to_string();
                     lox_alpha += s;
                 }

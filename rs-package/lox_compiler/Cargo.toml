@@ -11,3 +11,9 @@ edition = "2021"
 panic = 'abort'
 lto = true
 
+
+[features]
+default = ["lox"]
+
+lox = []
+mandarin = []
