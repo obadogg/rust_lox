@@ -1,4 +1,16 @@
+# rust
 /target
 **/*.rs.bk
 .idea
+
+# misc
 .DS_Store
+
+
+# js
+node_modules
+package-lock.json
+dist
+dist-ssr
+*.local
+

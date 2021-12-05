@@ -14,25 +14,33 @@ pub struct Interpreter {
     statements: Rc<Vec<Stmt>>,
     scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
     pub return_val: EnvironmentValue,
+    log_fn: Option<fn(String) -> ()>,
 }
 
 impl Interpreter {
     pub fn new(
         statements: Rc<Vec<Stmt>>,
         scope_record: Rc<RefCell<BTreeMap<usize, usize>>>,
+        log_fn: Option<fn(String) -> ()>,
     ) -> Self {
         Interpreter {
             envs: EnvironmentList::new(),
             statements,
             scope_record,
             return_val: EnvironmentValue::None,
+            log_fn,
         }
     }
 
     pub fn interpret(&mut self) {
         for stmt in self.statements.clone().iter() {
-            self.evaluate_statement_item(stmt)
-                .expect("oops! program panic:");
+            if let Err(err) = self.evaluate_statement_item(stmt) {
+                let error = format!(
+                    "{} in line {} column {} \n",
+                    err.message, err.line, err.column
+                );
+                panic!("\n\n******\nOops! interpret errors:\n{}******\n\n", error);
+            }
         }
     }
 
@@ -99,16 +107,12 @@ impl Interpreter {
     fn visit_print_stmt(&mut self, stmt: &PrintStatement) -> Result<(), Error> {
         let val = self.evaluate_expression_item(&stmt.expression)?;
 
-        if let Ok(message) = val.as_print() {
-            println!("{}", message);
-            Ok(())
+        if self.log_fn.is_none() {
+            println!("{}", val);
         } else {
-            Err(Error {
-                line: stmt.keyword.line,
-                column: stmt.keyword.column,
-                message: String::from("Lox only support print String/Boolean/Number"),
-            })
+            self.log_fn.unwrap()(format!("{}", val));
         }
+        Ok(())
     }
 
     fn visit_while_stmt(&mut self, stmt: &WhileStatement) -> Result<(), Error> {
@@ -136,14 +140,6 @@ impl Interpreter {
                     flag = self.evaluate_expression_item(condition)?.is_truthy();
                 }
             }
-
-            // for _ in 0..100000000 {
-            //     if let Some(updator) = &stmt.updator {
-            //         self.evaluate_statement_item(&stmt.body)?;
-            //         self.evaluate_expression_item(updator)?;
-            //         self.evaluate_expression_item(condition)?.is_truthy();
-            //     }
-            // }
         }
         self.envs.back();
         Ok(())
@@ -296,7 +292,7 @@ impl Interpreter {
                     line: expr.operator.line,
                     column: expr.operator.column,
                     message: format!(
-                        "\"!=\" and \"==\" operands only support number/string/boolean {}",
+                        r#""!=" and "==" operands only support number/string/boolean {}"#,
                         &expr.operator.lexeme
                     ),
                 })
@@ -310,7 +306,7 @@ impl Interpreter {
                     line: expr.operator.line,
                     column: expr.operator.column,
                     message: format!(
-                        "\"!=\" and \"==\" operands only support number/string/boolean {}",
+                        r#""!=" and "==" operands only support number/string/boolean {}"#,
                         &expr.operator.lexeme
                     ),
                 })
@@ -477,7 +473,7 @@ impl Interpreter {
                         line: expr.end_parenthese.line,
                         column: expr.end_parenthese.column,
                         message: format!(
-                            "Expect {} arguments but got {}, at \")\"",
+                            r#"Expect {} arguments but got {}, at ")""#,
                             lox_class.borrow().arity().to_string(),
                             args.len().to_string()
                         ),
@@ -491,7 +487,7 @@ impl Interpreter {
                         line: expr.end_parenthese.line,
                         column: expr.end_parenthese.column,
                         message: format!(
-                            "Expect {} arguments but got {}, at \")\"",
+                            r#"Expect {} arguments but got {}, at ")""#,
                             lox_function.borrow().arity().to_string(),
                             args.len().to_string()
                         ),
@@ -589,8 +585,4 @@ impl Interpreter {
             message: format!("Undefined property {}", expr.method.lexeme),
         })
     }
-
-    // fn visit_expr_wrap(&mut self,result:Result<EnvironmentValue, Error>) -> Result<EnvironmentValue, Error>{
-
-    // }
 }

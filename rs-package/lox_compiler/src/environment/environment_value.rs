@@ -3,7 +3,7 @@ use crate::interpreter::lox_class::LoxClass;
 use crate::interpreter::lox_function::LoxFunction;
 use crate::interpreter::lox_instance::LoxInstance;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, fmt, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub enum EnvironmentValue {
@@ -18,6 +18,24 @@ pub enum EnvironmentValue {
     None,
 }
 
+impl fmt::Display for EnvironmentValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                EnvironmentValue::Number(num_val) => num_val.to_string(),
+                EnvironmentValue::String(string_val) => string_val.clone(),
+                EnvironmentValue::Bool(bool_val) => bool_val.to_string(),
+                EnvironmentValue::None => String::from("Nil"),
+                EnvironmentValue::LoxClass(_) => String::from("LoxClass"),
+                EnvironmentValue::LoxFunction(_) => String::from("LoxFunction"),
+                EnvironmentValue::LoxInstance(_) => String::from("LoxInstance"),
+            }
+        )
+    }
+}
+
 impl EnvironmentValue {
     pub fn is_truthy(&self) -> bool {
         let mut flag = true;
@@ -29,16 +47,6 @@ impl EnvironmentValue {
             _ => {}
         }
         flag
-    }
-
-    pub fn as_print(&self) -> Result<String, ()> {
-        match self {
-            EnvironmentValue::Number(num_val) => Ok(num_val.to_string()),
-            EnvironmentValue::String(string_val) => Ok(string_val.clone()),
-            EnvironmentValue::Bool(bool_val) => Ok(bool_val.to_string()),
-            EnvironmentValue::None => Ok(String::from("Nil")),
-            _ => Err(()),
-        }
     }
 
     pub fn is_number(&self) -> bool {

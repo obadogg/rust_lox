@@ -1,0 +1,13 @@
+{
+  "package": "lox_napi",
+  "devDependencies": {
+    "@napi-rs/cli": "^1.0.0"
+  },
+  "napi": {
+    "name": "lox_napi"
+  },
+  "scripts": {
+    "build": "napi build --release",
+    "build:debug": "napi build"
+  }
+}

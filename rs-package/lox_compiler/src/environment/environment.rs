@@ -1,5 +1,5 @@
 use super::super::scanner::{scanner::*, tokens::*};
-use super::environment_value::*;
+use crate::environment::environment_value::*;
 use crate::semantic::scope_analyst::*;
 
 use std::collections::BTreeMap;
@@ -245,7 +245,17 @@ impl EnvironmentList {
 
     pub fn global_get(&self, name: &Token) -> Result<&EnvironmentValue, Error> {
         let name_ptr = ScopeAnalyst::get_scope_key_name(&name.lexeme);
-        Ok(self.list.get(0).unwrap().get(&name_ptr).unwrap())
+        let value = self.list.get(0).unwrap().get(&name_ptr);
+
+        if let Some(value) = value {
+            Ok(value)
+        } else {
+            Err(Error {
+                line: name.line,
+                column: name.column,
+                message: String::from("Undefined variable at ") + name.lexeme.as_str(),
+            })
+        }
     }
 
     pub fn global_assign(&mut self, name: &Token, value: EnvironmentValue) -> Result<(), Error> {

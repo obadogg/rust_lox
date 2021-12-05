@@ -1,0 +1,21 @@
+[package]
+name = "lox_napi"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = "1.8.0"
+napi-derive = "1.1.2"
+lox_compiler = { path = "../lox_compiler" }
+
+[build-dependencies]
+napi-build = "1"
+
+[profile.release]
+lto = true
+
