@@ -1,4 +1,4 @@
-use crate::hash_map;
+use crate::map;
 use crate::utils::utils::get_rc_ref_address;
 
 use super::super::parser::{expression::*, statement::*};
@@ -216,11 +216,11 @@ impl ScopeAnalyst {
                 _ => {}
             }
             self.evaluate_expression_item(superclass);
-            self.scopes.push(hash_map! {SUPER_STRING.as_ptr() => true});
+            self.scopes.push(map! {SUPER_STRING.as_ptr() => true});
             self.class_type = ClassType::SubClass;
         }
 
-        self.scopes.push(hash_map! {THIS_STRING.as_ptr() => true});
+        self.scopes.push(map! {THIS_STRING.as_ptr() => true});
 
         for method in stmt.methods.iter() {
             if *method.name.lexeme == "init" {

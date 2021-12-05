@@ -69,7 +69,7 @@ pub struct Token {
 }
 
 #[macro_export]
-macro_rules! hash_map_negative {
+macro_rules! map_negative {
     ($($k:expr => $v:expr),*) => {
         {
             let mut map = BTreeMap::new();
@@ -82,7 +82,7 @@ macro_rules! hash_map_negative {
 }
 
 #[macro_export]
-macro_rules! hash_map {
+macro_rules! map {
     ($($k:expr => $v:expr),*) => {
         {
             let mut map = BTreeMap::new();
@@ -96,7 +96,7 @@ macro_rules! hash_map {
 
 #[cfg(all(feature = "lox", not(feature = "mandarin")))]
 pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
-    hash_map_negative! {
+    map_negative! {
         TokensType::And => "and",
         TokensType::Class => "class",
         TokensType::Else => "else",
@@ -118,7 +118,7 @@ pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
 
 #[cfg(feature = "mandarin")]
 pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
-    hash_map_negative! {
+    map_negative! {
         TokensType::And => "与上",
         TokensType::Class => "类",
         TokensType::Else => "否则",

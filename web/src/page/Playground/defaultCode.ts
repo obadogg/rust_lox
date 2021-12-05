@@ -16,7 +16,9 @@ export default `// class Person {
 // print me.introduceMySelf();
 
 var sum = 1;
-for(var i = 0;i < 100000; i = i + 1){
+for(var i = 0;i < 10000000; i = i + 1){
     sum = sum + 1;
 }
-print sum;`
+print sum;
+
+`

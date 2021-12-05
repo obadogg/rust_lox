@@ -103,6 +103,12 @@ impl EnvironmentValue {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
                 return Ok(EnvironmentValue::Bool(left == right))
             }
+            (EnvironmentValue::Bool(left), EnvironmentValue::Bool(right)) => {
+                return Ok(EnvironmentValue::Bool(left == right))
+            }
+            (EnvironmentValue::String(left), EnvironmentValue::String(right)) => {
+                return Ok(EnvironmentValue::Bool(left == right))
+            }
             (_, _) => Err(()),
         }
     }
@@ -114,6 +120,12 @@ impl EnvironmentValue {
     ) -> Result<EnvironmentValue, ()> {
         match (lhs, rhs) {
             (EnvironmentValue::Number(left), EnvironmentValue::Number(right)) => {
+                return Ok(EnvironmentValue::Bool(left != right))
+            }
+            (EnvironmentValue::Bool(left), EnvironmentValue::Bool(right)) => {
+                return Ok(EnvironmentValue::Bool(left != right))
+            }
+            (EnvironmentValue::String(left), EnvironmentValue::String(right)) => {
                 return Ok(EnvironmentValue::Bool(left != right))
             }
             (_, _) => Err(()),
