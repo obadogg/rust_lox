@@ -1,6 +1,6 @@
 use super::tokens::{init_tokens, Token, TokensType, ValueType};
 
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::rc::Rc;
 use std::str::Chars;
 
@@ -19,7 +19,7 @@ pub struct Scanner<'a> {
     current: u8,
     line: u8,
     peeked: VecDeque<char>,
-    token_map: BTreeMap<&'a str, TokensType>,
+    token_map: (HashMap<TokensType, &'a str>, HashMap<&'a str, TokensType>),
     errors: Vec<Error>,
     lexeme_cache: BTreeMap<Rc<String>, Rc<String>>,
 }
@@ -324,10 +324,126 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        if let Some(&token_type) = self.token_map.get(&*lox_alpha) {
+        if let Some(&token_type) = self.token_map.1.get(&*lox_alpha) {
             self.add_token(token_type, lox_alpha, None);
         } else {
             self.add_token(TokensType::Identifier, lox_alpha, None);
         }
+    }
+}
+
+#[cfg(test)]
+mod scanner_tests {
+    use crate::map_two_way;
+    use crate::scanner::scanner::Scanner;
+    use crate::scanner::tokens::{init_tokens, TokensType, ValueType};
+    use std::collections::HashMap;
+
+    #[test]
+    fn keywords() {
+        let (_, tokens_map) = init_tokens();
+
+        let keywords = tokens_map
+            .iter()
+            .map(|(keywords_str, _)| format!("{}", keywords_str));
+
+        let source = keywords
+            .clone()
+            .map(|keyword_str| format!("{} ", keyword_str))
+            .collect::<String>();
+
+        let mut s = Scanner::new(&source);
+        s.scan();
+
+        keywords.enumerate().for_each(|(pos, lexeme)| {
+            assert_eq!(
+                *tokens_map.get(&lexeme.as_str()).unwrap(),
+                s.tokens[pos].token_type
+            )
+        });
+    }
+
+    #[test]
+    fn symbols() {
+        let (map, _) = map_two_way! {
+            "(" => TokensType::LeftParen,
+            ")" => TokensType::RightParen,
+            "{" => TokensType::LeftBrace,
+            "}" => TokensType::RightBrace,
+            "," => TokensType::Comma,
+            "." => TokensType::Dot,
+            "-" => TokensType::Minus,
+            "+" => TokensType::Plus,
+            ";" => TokensType::Semicolon,
+            "/" => TokensType::Slash,
+            "*" => TokensType::Star,
+            "!" => TokensType::Bang,
+            "!=" => TokensType::BangEqual,
+            "=" => TokensType::Equal,
+            "==" => TokensType::EqualEqual,
+            ">" => TokensType::Greater,
+            ">=" => TokensType::GreaterEqual,
+            "<" => TokensType::Less,
+            "<=" => TokensType::LessEqual
+        };
+
+        let symbols = map.iter().map(|(symbol_str, _)| format!("{}", symbol_str));
+
+        let source = symbols
+            .clone()
+            .map(|symbol_str| format!("{} ", symbol_str))
+            .collect::<String>();
+
+        let mut s = Scanner::new(&source);
+        s.scan();
+
+        symbols.enumerate().for_each(|(pos, lexeme)| {
+            assert_eq!(
+                *map.get(&lexeme.as_str()).unwrap(),
+                s.tokens[pos].token_type
+            )
+        });
+    }
+
+    #[test]
+    fn literals() {
+        let source = String::from(r#"identifier "string" 1"#);
+        let mut s = Scanner::new(&source);
+        s.scan();
+
+        assert_eq!(s.tokens[0].token_type, TokensType::Identifier);
+        assert_eq!(*s.tokens[0].lexeme, String::from("identifier"));
+
+        assert_eq!(s.tokens[1].token_type, TokensType::String);
+        assert_eq!(*s.tokens[1].lexeme, String::from(r#""string""#));
+        assert_eq!(
+            s.tokens[1].literal.clone().unwrap(),
+            ValueType::String(String::from("string"))
+        );
+
+        assert_eq!(s.tokens[2].token_type, TokensType::Number);
+        assert_eq!(*s.tokens[2].lexeme, String::from("1"));
+        assert_eq!(
+            s.tokens[2].literal.clone().unwrap(),
+            ValueType::Number(1_f64)
+        );
+
+        assert_eq!(s.tokens[3].token_type, TokensType::Eof);
+        assert_eq!(*s.tokens[3].lexeme, String::from(""));
+    }
+
+    #[test]
+    fn multiline_text() {
+        let source = String::from(
+            r#""a
+        b""#,
+        );
+        let mut s = Scanner::new(&source);
+        s.scan();
+
+        assert_eq!(
+            s.tokens[0].literal.clone().unwrap(),
+            ValueType::String(String::from("a\n        b"))
+        )
     }
 }

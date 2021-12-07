@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
@@ -52,7 +52,7 @@ pub enum TokensType {
     Eof,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum ValueType {
     Number(f64),
     String(String),
@@ -69,14 +69,16 @@ pub struct Token {
 }
 
 #[macro_export]
-macro_rules! map_negative {
+macro_rules! map_two_way {
     ($($k:expr => $v:expr),*) => {
         {
-            let mut map = BTreeMap::new();
+            let mut map1 = HashMap::new();
+            let mut map2 = HashMap::new();
             $(
-                map.insert($v,$k);
+                map1.insert($k,$v);
+                map2.insert($v,$k);
             )*
-            map
+           (map1,map2)
         }
     };
 }
@@ -95,8 +97,8 @@ macro_rules! map {
 }
 
 #[cfg(all(feature = "lox", not(feature = "mandarin")))]
-pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
-    map_negative! {
+pub fn init_tokens<'a>() -> (HashMap<TokensType, &'a str>, HashMap<&'a str, TokensType>) {
+    map_two_way! {
         TokensType::And => "and",
         TokensType::Class => "class",
         TokensType::Else => "else",
@@ -117,8 +119,8 @@ pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
 }
 
 #[cfg(feature = "mandarin")]
-pub fn init_tokens<'a>() -> BTreeMap<&'a str, TokensType> {
-    map_negative! {
+pub fn init_tokens<'a>() -> (HashMap<TokensType, &'a str>, HashMap<&'a str, TokensType>) {
+    map_two_way! {
         TokensType::And => "与上",
         TokensType::Class => "类",
         TokensType::Else => "否则",
